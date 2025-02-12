@@ -1,14 +1,17 @@
 package com.krisped;
 
 import net.runelite.api.*;
-import net.runelite.api.Point;
 import net.runelite.api.kit.KitType;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.overlay.*;
 import net.runelite.client.ui.overlay.outline.ModelOutlineRenderer;
 
 import javax.inject.Inject;
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Graphics2D;
+import java.awt.Rectangle;
+import java.awt.Shape;
 
 public class PlayerRiskOverlay extends Overlay
 {
@@ -39,15 +42,14 @@ public class PlayerRiskOverlay extends Overlay
             }
 
             int totalRisk = calculatePlayerRisk(player);
-            Color highlightColor = getRiskColor(totalRisk);
+            Color riskColor = getRiskColor(totalRisk);
 
-            if (highlightColor != null)
+            if (riskColor != null)
             {
-                modelOutlineRenderer.drawOutline(player, config.outlineThickness(), highlightColor, 0);
-                drawRiskText(graphics, player, totalRisk);
+                modelOutlineRenderer.drawOutline(player, config.outlineThickness(), riskColor, 0);
+                drawRiskText(graphics, player, totalRisk, riskColor);
             }
         }
-
         return null;
     }
 
@@ -68,28 +70,28 @@ public class PlayerRiskOverlay extends Overlay
                 totalValue += itemManager.getItemPrice(itemId);
             }
         }
-
         return totalValue;
     }
 
     private Color getRiskColor(int riskValue)
     {
-        if (riskValue > config.insaneRiskThreshold()) return Color.PINK;
-        else if (riskValue > config.highRiskThreshold()) return Color.ORANGE;
-        else if (riskValue > config.mediumRiskThreshold()) return Color.GREEN;
-        else if (riskValue > config.lowRiskThreshold()) return Color.BLUE;
+        if (riskValue > config.insaneValueRisk()) return config.insaneValueColor();
+        else if (riskValue > config.highValueRisk()) return config.highValueColor();
+        else if (riskValue > config.mediumValueRisk()) return config.mediumValueColor();
+        else if (riskValue > config.lowValueRisk()) return config.lowValueColor();
         return null;
     }
 
-    private void drawRiskText(Graphics2D graphics, Player player, int totalRisk)
+    private void drawRiskText(Graphics2D graphics, Player player, int totalRisk, Color riskColor)
     {
         String riskText = formatRiskValue(totalRisk);
-        Point textLocation = getTextLocation(graphics, player, riskText);
+        // Bruker java.awt.Point for å unngå konflikt med net.runelite.api.Point
+        java.awt.Point textLocation = getTextLocation(graphics, player, riskText);
 
         if (textLocation != null)
         {
-            graphics.setColor(Color.WHITE);
-            graphics.drawString(riskText, textLocation.getX(), textLocation.getY());
+            graphics.setColor(riskColor);
+            graphics.drawString(riskText, textLocation.x, textLocation.y);
         }
     }
 
@@ -100,29 +102,45 @@ public class PlayerRiskOverlay extends Overlay
         else return String.valueOf(value);
     }
 
-    private Point getTextLocation(Graphics2D graphics, Player player, String riskText)
+    private java.awt.Point getTextLocation(Graphics2D graphics, Player player, String riskText)
     {
         if (player == null || riskText == null)
         {
             return null;
         }
 
-        int offsetY;
+        if (config.textPosition() == PlayerRiskConfig.TextPosition.NONE)
+        {
+            return null;
+        }
+
+        // Bruk spillerens convex hull for en nøyaktigere treffflate
+        Shape hull = player.getConvexHull();
+        if (hull == null)
+        {
+            return null;
+        }
+        Rectangle bounds = hull.getBounds();
+        int centerX = bounds.x + bounds.width / 2;
+        int centerY = bounds.y + bounds.height / 2;
+        int y;
         switch (config.textPosition())
         {
             case ABOVE:
-                offsetY = -40;
+                y = bounds.y - 5; // litt over hullens topp
                 break;
             case MIDDLE:
-                offsetY = -20;
+                y = centerY;
                 break;
             case BELOW:
-                offsetY = 0;
+                y = bounds.y + bounds.height + 5; // litt under hullens bunn
                 break;
             default:
-                offsetY = 0;
+                y = centerY;
+                break;
         }
-
-        return player.getCanvasTextLocation(graphics, riskText, offsetY);
+        int textWidth = graphics.getFontMetrics().stringWidth(riskText);
+        int x = centerX - textWidth / 2;
+        return new java.awt.Point(x, y);
     }
 }

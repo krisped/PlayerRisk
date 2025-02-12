@@ -1,62 +1,98 @@
 package com.krisped;
 
 import net.runelite.client.config.*;
-
 import java.awt.Color;
 
 @ConfigGroup("playerRisk")
 public interface PlayerRiskConfig extends Config
 {
     @ConfigItem(
-            keyName = "lowRiskThreshold",
-            name = "Low Value Price",
-            description = "Minimum GP value for a player to be considered above low risk",
+            keyName = "lowValueRisk",
+            name = "Low Value Risk",
+            description = "Minimum GP-verdi for at en spiller skal regnes som lav risiko",
             position = 1
     )
-    default int lowRiskThreshold() { return 20_000; }
+    default int lowValueRisk() { return 20_000; }
 
+    @Alpha
     @ConfigItem(
-            keyName = "mediumRiskThreshold",
-            name = "Medium Value Price",
-            description = "Minimum GP value for a player to be considered medium risk",
+            keyName = "lowValueColor",
+            name = "Low Value Color",
+            description = "Farge for spillere med lav risiko",
             position = 2
     )
-    default int mediumRiskThreshold() { return 100_000; }
+    default Color lowValueColor() { return Color.BLUE; }
 
     @ConfigItem(
-            keyName = "highRiskThreshold",
-            name = "High Value Price",
-            description = "Minimum GP value for a player to be considered high risk",
+            keyName = "mediumValueRisk",
+            name = "Medium Value Risk",
+            description = "Minimum GP-verdi for at en spiller skal regnes som medium risiko",
             position = 3
     )
-    default int highRiskThreshold() { return 1_000_000; }
+    default int mediumValueRisk() { return 100_000; }
 
+    @Alpha
     @ConfigItem(
-            keyName = "insaneRiskThreshold",
-            name = "Insane Value Price",
-            description = "Minimum GP value for a player to be considered insane risk",
+            keyName = "mediumValueColor",
+            name = "Medium Value Color",
+            description = "Farge for spillere med medium risiko",
             position = 4
     )
-    default int insaneRiskThreshold() { return 10_000_000; }
+    default Color mediumValueColor() { return Color.GREEN; }
+
+    @ConfigItem(
+            keyName = "highValueRisk",
+            name = "High Value Risk",
+            description = "Minimum GP-verdi for at en spiller skal regnes som høy risiko",
+            position = 5
+    )
+    default int highValueRisk() { return 1_000_000; }
+
+    @Alpha
+    @ConfigItem(
+            keyName = "highValueColor",
+            name = "High Value Color",
+            description = "Farge for spillere med høy risiko",
+            position = 6
+    )
+    default Color highValueColor() { return Color.ORANGE; }
+
+    @ConfigItem(
+            keyName = "insaneValueRisk",
+            name = "Insane Value Risk",
+            description = "Minimum GP-verdi for at en spiller skal regnes som insane risiko",
+            position = 7
+    )
+    default int insaneValueRisk() { return 10_000_000; }
+
+    @Alpha
+    @ConfigItem(
+            keyName = "insaneValueColor",
+            name = "Insane Value Color",
+            description = "Farge for spillere med insane risiko",
+            position = 8
+    )
+    default Color insaneValueColor() { return Color.PINK; }
 
     @ConfigItem(
             keyName = "outlineThickness",
             name = "Outline Thickness",
-            description = "Thickness of the outline around risky players",
-            position = 5
+            description = "Tykkelse på omrisset rundt spillere",
+            position = 9
     )
     default int outlineThickness() { return 2; }
 
     @ConfigItem(
             keyName = "textPosition",
             name = "Text Position",
-            description = "Where to display the risk text",
-            position = 6
+            description = "Hvor risikoteksten skal vises",
+            position = 10
     )
     default TextPosition textPosition() { return TextPosition.ABOVE; }
 
     enum TextPosition
     {
+        NONE,
         ABOVE,
         MIDDLE,
         BELOW
