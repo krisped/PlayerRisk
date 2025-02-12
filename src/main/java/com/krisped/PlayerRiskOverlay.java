@@ -34,11 +34,43 @@ public class PlayerRiskOverlay extends Overlay
     @Override
     public Dimension render(Graphics2D graphics)
     {
+        // Hent valgt PvP-mode
+        PlayerRiskConfig.PvPMode mode = config.pvpMode();
+
+        // Hvis modus er ON eller ATTACKABLE, kreves at vi er i et PvP-miljø (PvP world eller Wilderness)
+        if ((mode == PlayerRiskConfig.PvPMode.ON || mode == PlayerRiskConfig.PvPMode.ATTACKABLE) &&
+                !(client.getWorldType().contains(WorldType.PVP) || client.getVar(Varbits.IN_WILDERNESS) > 0))
+        {
+            return null;
+        }
+
         for (Player player : client.getPlayers())
         {
             if (player == null || player.getName() == null)
             {
                 continue;
+            }
+
+            // I ATTACKABLE-modus sjekkes om spilleren er angrepsbar
+            if (mode == PlayerRiskConfig.PvPMode.ATTACKABLE)
+            {
+                Player localPlayer = client.getLocalPlayer();
+                if (localPlayer == null)
+                {
+                    continue;
+                }
+                int localCombat = localPlayer.getCombatLevel();
+                int targetCombat = player.getCombatLevel();
+                int allowedDifference = 15;
+                int wildernessLevel = client.getVar(Varbits.IN_WILDERNESS); // 0 hvis ikke i wilderness
+                if (wildernessLevel > 0)
+                {
+                    allowedDifference += wildernessLevel;
+                }
+                if (Math.abs(targetCombat - localCombat) > allowedDifference)
+                {
+                    continue;
+                }
             }
 
             int totalRisk = calculatePlayerRisk(player);
@@ -85,7 +117,6 @@ public class PlayerRiskOverlay extends Overlay
     private void drawRiskText(Graphics2D graphics, Player player, int totalRisk, Color riskColor)
     {
         String riskText = formatRiskValue(totalRisk);
-        // Bruker java.awt.Point for å unngå konflikt med net.runelite.api.Point
         java.awt.Point textLocation = getTextLocation(graphics, player, riskText);
 
         if (textLocation != null)
@@ -108,13 +139,11 @@ public class PlayerRiskOverlay extends Overlay
         {
             return null;
         }
-
         if (config.textPosition() == PlayerRiskConfig.TextPosition.NONE)
         {
             return null;
         }
-
-        // Bruk spillerens convex hull for en nøyaktigere treffflate
+        // Bruk spillerens convex hull for nøyaktig posisjonering
         Shape hull = player.getConvexHull();
         if (hull == null)
         {
@@ -127,13 +156,13 @@ public class PlayerRiskOverlay extends Overlay
         switch (config.textPosition())
         {
             case ABOVE:
-                y = bounds.y - 5; // litt over hullens topp
+                y = bounds.y - 5;
                 break;
             case MIDDLE:
                 y = centerY;
                 break;
             case BELOW:
-                y = bounds.y + bounds.height + 5; // litt under hullens bunn
+                y = bounds.y + bounds.height + 5;
                 break;
             default:
                 y = centerY;

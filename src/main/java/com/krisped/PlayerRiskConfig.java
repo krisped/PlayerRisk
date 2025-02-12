@@ -90,11 +90,29 @@ public interface PlayerRiskConfig extends Config
     )
     default TextPosition textPosition() { return TextPosition.ABOVE; }
 
+    @ConfigItem(
+            keyName = "pvpMode",
+            name = "PvP Mode",
+            description = "Velg hvilke spillere som skal fremheves:\n" +
+                    "• OFF: Alle spillere i alle worlds\n" +
+                    "• ON: Kun spillere i PvP-verden (eller Wilderness)\n" +
+                    "• ATTACKABLE: Kun spillere du kan angripe (basert på din combat level)",
+            position = 11
+    )
+    default PvPMode pvpMode() { return PvPMode.OFF; }
+
     enum TextPosition
     {
         NONE,
         ABOVE,
         MIDDLE,
         BELOW
+    }
+
+    enum PvPMode
+    {
+        OFF,
+        ON,
+        ATTACKABLE
     }
 }
