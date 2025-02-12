@@ -24,6 +24,9 @@ public class PlayerRiskPlugin extends Plugin
     private PlayerRiskOverlay playerRiskOverlay;
 
     @Inject
+    private PlayerRiskMinimapOverlay playerRiskMinimapOverlay; // lagt til
+
+    @Inject
     private OverlayManager overlayManager;
 
     @Inject
@@ -34,6 +37,7 @@ public class PlayerRiskPlugin extends Plugin
     {
         log.info("Player Risk Plugin started!");
         overlayManager.add(playerRiskOverlay);
+        overlayManager.add(playerRiskMinimapOverlay); // lagt til
     }
 
     @Override
@@ -41,6 +45,7 @@ public class PlayerRiskPlugin extends Plugin
     {
         log.info("Player Risk Plugin stopped!");
         overlayManager.remove(playerRiskOverlay);
+        overlayManager.remove(playerRiskMinimapOverlay); // lagt til
     }
 
     @Provides

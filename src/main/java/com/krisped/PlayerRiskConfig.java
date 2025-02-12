@@ -4,9 +4,9 @@ import net.runelite.client.config.*;
 import java.awt.Color;
 
 @ConfigGroup("playerRisk")
-public interface PlayerRiskConfig extends Config
-{
-    // --- Risk Values Section ---
+public interface PlayerRiskConfig extends Config {
+
+    // --- Risk Values ---
     @ConfigSection(
             name = "Risk Values",
             description = "Configure risk categories: enable, GP threshold, and color.",
@@ -19,7 +19,7 @@ public interface PlayerRiskConfig extends Config
     @ConfigItem(
             keyName = "enableLowRisk",
             name = "Enable Low Risk",
-            description = "Enable highlighting for low risk players.",
+            description = "Enable highlighting for low risk players (>20,000 GP).",
             position = 1,
             section = riskValuesSection
     )
@@ -28,7 +28,7 @@ public interface PlayerRiskConfig extends Config
     @ConfigItem(
             keyName = "lowRiskGP",
             name = "Low Risk GP",
-            description = "Minimum GP value for a player to be considered low risk.",
+            description = "Minimum GP value for a player to be considered low risk (must be >20,000).",
             position = 2,
             section = riskValuesSection
     )
@@ -48,7 +48,7 @@ public interface PlayerRiskConfig extends Config
     @ConfigItem(
             keyName = "enableMediumRisk",
             name = "Enable Medium Risk",
-            description = "Enable highlighting for medium risk players.",
+            description = "Enable highlighting for medium risk players (>100,000 GP).",
             position = 4,
             section = riskValuesSection
     )
@@ -77,7 +77,7 @@ public interface PlayerRiskConfig extends Config
     @ConfigItem(
             keyName = "enableHighRisk",
             name = "Enable High Risk",
-            description = "Enable highlighting for high risk players.",
+            description = "Enable highlighting for high risk players (>1,000,000 GP).",
             position = 7,
             section = riskValuesSection
     )
@@ -106,7 +106,7 @@ public interface PlayerRiskConfig extends Config
     @ConfigItem(
             keyName = "enableInsaneRisk",
             name = "Enable Insane Risk",
-            description = "Enable highlighting for insane risk players.",
+            description = "Enable highlighting for insane risk players (>10,000,000 GP).",
             position = 10,
             section = riskValuesSection
     )
@@ -131,10 +131,10 @@ public interface PlayerRiskConfig extends Config
     )
     default Color insaneRiskColor() { return Color.PINK; }
 
-    // --- Display Settings Section ---
+    // --- Display Settings ---
     @ConfigSection(
             name = "Display Settings",
-            description = "Configure display options such as text position and PvP mode.",
+            description = "Configure overlay display options.",
             position = 1,
             closedByDefault = false
     )
@@ -152,36 +152,83 @@ public interface PlayerRiskConfig extends Config
     @ConfigItem(
             keyName = "textPosition",
             name = "Text Position",
-            description = "Where to display the risk text.",
+            description = "Select text position relative to the player model:\n• OVER: Over head\n• CENTER: Center of model\n• UNDER: Below model\n• DISABLED: No text",
             position = 2,
             section = displaySettingsSection
     )
-    default TextPosition textPosition() { return TextPosition.ABOVE; }
+    default TextPosition textPosition() { return TextPosition.OVER; }
 
     @ConfigItem(
             keyName = "pvpMode",
             name = "PvP Mode",
-            description = "Select which players to highlight:\n" +
-                    "• OFF: All players in all worlds.\n" +
-                    "• ON: Only players in PvP worlds (or Wilderness).\n" +
-                    "• ATTACKABLE: Only players you can attack based on your combat level.",
+            description = "Select which players to highlight:\n• OFF: All players\n• ON: Only players in PvP worlds/Wilderness\n• ATTACKABLE: Only players you can attack based on combat level",
             position = 3,
             section = displaySettingsSection
     )
     default PvPMode pvpMode() { return PvPMode.OFF; }
 
-    enum TextPosition
-    {
-        NONE,
-        ABOVE,
-        MIDDLE,
-        BELOW
+    @ConfigItem(
+            keyName = "minimapDisplayMode",
+            name = "Minimap Display Mode",
+            description = "Select how risk is displayed on the minimap:\n• NONE: Do not display\n• DOT: Show a colored dot\n• RISK: Display risk value with player name",
+            position = 4,
+            section = displaySettingsSection
+    )
+    default MinimapDisplayMode minimapDisplayMode() { return MinimapDisplayMode.NONE; }
+
+    @ConfigItem(
+            keyName = "enableTile",
+            name = "Enable Tile",
+            description = "Draw a tile overlay (using player's canvas tile poly) around the player (contour only).",
+            position = 5,
+            section = displaySettingsSection
+    )
+    default boolean enableTile() { return false; }
+
+    @ConfigItem(
+            keyName = "enableOutline",
+            name = "Enable Outline",
+            description = "Draw an outline around the player.",
+            position = 6,
+            section = displaySettingsSection
+    )
+    default boolean enableOutline() { return true; }
+
+    @ConfigItem(
+            keyName = "enableHull",
+            name = "Enable Hull",
+            description = "Draw the convex hull (ring) of the player's model.",
+            position = 7,
+            section = displaySettingsSection
+    )
+    default boolean enableHull() { return false; }
+
+    enum TextPosition {
+        DISABLED("Disabled"),
+        OVER("Over"),
+        CENTER("Center"),
+        UNDER("Under");
+
+        private final String displayName;
+        TextPosition(String displayName) { this.displayName = displayName; }
+        @Override
+        public String toString() { return displayName; }
     }
 
-    enum PvPMode
-    {
+    enum PvPMode {
         OFF,
         ON,
         ATTACKABLE
+    }
+
+    enum MinimapDisplayMode {
+        NONE("None"),
+        DOT("Dot"),
+        RISK("Risk");
+
+        private final String displayName;
+        MinimapDisplayMode(String displayName) { this.displayName = displayName; }
+        @Override
+        public String toString() { return displayName; }
     }
 }
