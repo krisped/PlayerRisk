@@ -6,98 +6,167 @@ import java.awt.Color;
 @ConfigGroup("playerRisk")
 public interface PlayerRiskConfig extends Config
 {
-    @ConfigItem(
-            keyName = "lowValueRisk",
-            name = "Low Value Risk",
-            description = "Minimum GP-verdi for at en spiller skal regnes som lav risiko",
-            position = 1
+    // --- Risk Values Section ---
+    @ConfigSection(
+            name = "Risk Values",
+            description = "Configure risk categories: enable, GP threshold, and color.",
+            position = 0,
+            closedByDefault = false
     )
-    default int lowValueRisk() { return 20_000; }
+    String riskValuesSection = "riskValuesSection";
+
+    // Low Risk
+    @ConfigItem(
+            keyName = "enableLowRisk",
+            name = "Enable Low Risk",
+            description = "Enable highlighting for low risk players.",
+            position = 1,
+            section = riskValuesSection
+    )
+    default boolean enableLowRisk() { return false; }
+
+    @ConfigItem(
+            keyName = "lowRiskGP",
+            name = "Low Risk GP",
+            description = "Minimum GP value for a player to be considered low risk.",
+            position = 2,
+            section = riskValuesSection
+    )
+    default int lowRiskGP() { return 20000; }
 
     @Alpha
     @ConfigItem(
-            keyName = "lowValueColor",
-            name = "Low Value Color",
-            description = "Farge for spillere med lav risiko",
-            position = 2
+            keyName = "lowRiskColor",
+            name = "Low Risk Color",
+            description = "Color for low risk players.",
+            position = 3,
+            section = riskValuesSection
     )
-    default Color lowValueColor() { return Color.BLUE; }
+    default Color lowRiskColor() { return Color.BLUE; }
+
+    // Medium Risk
+    @ConfigItem(
+            keyName = "enableMediumRisk",
+            name = "Enable Medium Risk",
+            description = "Enable highlighting for medium risk players.",
+            position = 4,
+            section = riskValuesSection
+    )
+    default boolean enableMediumRisk() { return false; }
 
     @ConfigItem(
-            keyName = "mediumValueRisk",
-            name = "Medium Value Risk",
-            description = "Minimum GP-verdi for at en spiller skal regnes som medium risiko",
-            position = 3
+            keyName = "mediumRiskGP",
+            name = "Medium Risk GP",
+            description = "Minimum GP value for a player to be considered medium risk.",
+            position = 5,
+            section = riskValuesSection
     )
-    default int mediumValueRisk() { return 100_000; }
-
-    @Alpha
-    @ConfigItem(
-            keyName = "mediumValueColor",
-            name = "Medium Value Color",
-            description = "Farge for spillere med medium risiko",
-            position = 4
-    )
-    default Color mediumValueColor() { return Color.GREEN; }
-
-    @ConfigItem(
-            keyName = "highValueRisk",
-            name = "High Value Risk",
-            description = "Minimum GP-verdi for at en spiller skal regnes som høy risiko",
-            position = 5
-    )
-    default int highValueRisk() { return 1_000_000; }
+    default int mediumRiskGP() { return 100000; }
 
     @Alpha
     @ConfigItem(
-            keyName = "highValueColor",
-            name = "High Value Color",
-            description = "Farge for spillere med høy risiko",
-            position = 6
+            keyName = "mediumRiskColor",
+            name = "Medium Risk Color",
+            description = "Color for medium risk players.",
+            position = 6,
+            section = riskValuesSection
     )
-    default Color highValueColor() { return Color.ORANGE; }
+    default Color mediumRiskColor() { return Color.GREEN; }
+
+    // High Risk
+    @ConfigItem(
+            keyName = "enableHighRisk",
+            name = "Enable High Risk",
+            description = "Enable highlighting for high risk players.",
+            position = 7,
+            section = riskValuesSection
+    )
+    default boolean enableHighRisk() { return false; }
 
     @ConfigItem(
-            keyName = "insaneValueRisk",
-            name = "Insane Value Risk",
-            description = "Minimum GP-verdi for at en spiller skal regnes som insane risiko",
-            position = 7
+            keyName = "highRiskGP",
+            name = "High Risk GP",
+            description = "Minimum GP value for a player to be considered high risk.",
+            position = 8,
+            section = riskValuesSection
     )
-    default int insaneValueRisk() { return 10_000_000; }
+    default int highRiskGP() { return 1000000; }
 
     @Alpha
     @ConfigItem(
-            keyName = "insaneValueColor",
-            name = "Insane Value Color",
-            description = "Farge for spillere med insane risiko",
-            position = 8
+            keyName = "highRiskColor",
+            name = "High Risk Color",
+            description = "Color for high risk players.",
+            position = 9,
+            section = riskValuesSection
     )
-    default Color insaneValueColor() { return Color.PINK; }
+    default Color highRiskColor() { return Color.ORANGE; }
+
+    // Insane Risk
+    @ConfigItem(
+            keyName = "enableInsaneRisk",
+            name = "Enable Insane Risk",
+            description = "Enable highlighting for insane risk players.",
+            position = 10,
+            section = riskValuesSection
+    )
+    default boolean enableInsaneRisk() { return false; }
+
+    @ConfigItem(
+            keyName = "insaneRiskGP",
+            name = "Insane Risk GP",
+            description = "Minimum GP value for a player to be considered insane risk.",
+            position = 11,
+            section = riskValuesSection
+    )
+    default int insaneRiskGP() { return 10000000; }
+
+    @Alpha
+    @ConfigItem(
+            keyName = "insaneRiskColor",
+            name = "Insane Risk Color",
+            description = "Color for insane risk players.",
+            position = 12,
+            section = riskValuesSection
+    )
+    default Color insaneRiskColor() { return Color.PINK; }
+
+    // --- Display Settings Section ---
+    @ConfigSection(
+            name = "Display Settings",
+            description = "Configure display options such as text position and PvP mode.",
+            position = 1,
+            closedByDefault = false
+    )
+    String displaySettingsSection = "displaySettingsSection";
 
     @ConfigItem(
             keyName = "outlineThickness",
             name = "Outline Thickness",
-            description = "Tykkelse på omrisset rundt spillere",
-            position = 9
+            description = "Thickness of the outline drawn around players.",
+            position = 1,
+            section = displaySettingsSection
     )
     default int outlineThickness() { return 2; }
 
     @ConfigItem(
             keyName = "textPosition",
             name = "Text Position",
-            description = "Hvor risikoteksten skal vises",
-            position = 10
+            description = "Where to display the risk text.",
+            position = 2,
+            section = displaySettingsSection
     )
     default TextPosition textPosition() { return TextPosition.ABOVE; }
 
     @ConfigItem(
             keyName = "pvpMode",
             name = "PvP Mode",
-            description = "Velg hvilke spillere som skal fremheves:\n" +
-                    "• OFF: Alle spillere i alle worlds\n" +
-                    "• ON: Kun spillere i PvP-verden (eller Wilderness)\n" +
-                    "• ATTACKABLE: Kun spillere du kan angripe (basert på din combat level)",
-            position = 11
+            description = "Select which players to highlight:\n" +
+                    "• OFF: All players in all worlds.\n" +
+                    "• ON: Only players in PvP worlds (or Wilderness).\n" +
+                    "• ATTACKABLE: Only players you can attack based on your combat level.",
+            position = 3,
+            section = displaySettingsSection
     )
     default PvPMode pvpMode() { return PvPMode.OFF; }
 

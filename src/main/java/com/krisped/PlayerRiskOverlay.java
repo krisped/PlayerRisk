@@ -10,8 +10,6 @@ import javax.inject.Inject;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
-import java.awt.Rectangle;
-import java.awt.Shape;
 
 public class PlayerRiskOverlay extends Overlay
 {
@@ -34,16 +32,6 @@ public class PlayerRiskOverlay extends Overlay
     @Override
     public Dimension render(Graphics2D graphics)
     {
-        // Hent valgt PvP-mode
-        PlayerRiskConfig.PvPMode mode = config.pvpMode();
-
-        // Hvis modus er ON eller ATTACKABLE, kreves at vi er i et PvP-miljø (PvP world eller Wilderness)
-        if ((mode == PlayerRiskConfig.PvPMode.ON || mode == PlayerRiskConfig.PvPMode.ATTACKABLE) &&
-                !(client.getWorldType().contains(WorldType.PVP) || client.getVar(Varbits.IN_WILDERNESS) > 0))
-        {
-            return null;
-        }
-
         for (Player player : client.getPlayers())
         {
             if (player == null || player.getName() == null)
@@ -51,36 +39,24 @@ public class PlayerRiskOverlay extends Overlay
                 continue;
             }
 
-            // I ATTACKABLE-modus sjekkes om spilleren er angrepsbar
-            if (mode == PlayerRiskConfig.PvPMode.ATTACKABLE)
-            {
-                Player localPlayer = client.getLocalPlayer();
-                if (localPlayer == null)
-                {
-                    continue;
-                }
-                int localCombat = localPlayer.getCombatLevel();
-                int targetCombat = player.getCombatLevel();
-                int allowedDifference = 15;
-                int wildernessLevel = client.getVar(Varbits.IN_WILDERNESS); // 0 hvis ikke i wilderness
-                if (wildernessLevel > 0)
-                {
-                    allowedDifference += wildernessLevel;
-                }
-                if (Math.abs(targetCombat - localCombat) > allowedDifference)
-                {
-                    continue;
-                }
-            }
-
             int totalRisk = calculatePlayerRisk(player);
-            Color riskColor = getRiskColor(totalRisk);
-
-            if (riskColor != null)
+            RiskCategory category = getRiskCategory(totalRisk);
+            if (category == RiskCategory.NONE)
             {
-                modelOutlineRenderer.drawOutline(player, config.outlineThickness(), riskColor, 0);
-                drawRiskText(graphics, player, totalRisk, riskColor);
+                continue;
             }
+            if (!isCategoryEnabled(category))
+            {
+                continue;
+            }
+            Color riskColor = getRiskColor(totalRisk);
+            if (riskColor == null)
+            {
+                continue;
+            }
+            // Draw both outline and text
+            modelOutlineRenderer.drawOutline(player, config.outlineThickness(), riskColor, 0);
+            drawRiskText(graphics, player, totalRisk, riskColor);
         }
         return null;
     }
@@ -92,7 +68,6 @@ public class PlayerRiskOverlay extends Overlay
         {
             return 0;
         }
-
         int totalValue = 0;
         for (KitType kitType : KitType.values())
         {
@@ -107,10 +82,10 @@ public class PlayerRiskOverlay extends Overlay
 
     private Color getRiskColor(int riskValue)
     {
-        if (riskValue > config.insaneValueRisk()) return config.insaneValueColor();
-        else if (riskValue > config.highValueRisk()) return config.highValueColor();
-        else if (riskValue > config.mediumValueRisk()) return config.mediumValueColor();
-        else if (riskValue > config.lowValueRisk()) return config.lowValueColor();
+        if (riskValue > config.insaneRiskGP()) return config.insaneRiskColor();
+        else if (riskValue > config.highRiskGP()) return config.highRiskColor();
+        else if (riskValue > config.mediumRiskGP()) return config.mediumRiskColor();
+        else if (riskValue > config.lowRiskGP()) return config.lowRiskColor();
         return null;
     }
 
@@ -118,7 +93,6 @@ public class PlayerRiskOverlay extends Overlay
     {
         String riskText = formatRiskValue(totalRisk);
         java.awt.Point textLocation = getTextLocation(graphics, player, riskText);
-
         if (textLocation != null)
         {
             graphics.setColor(riskColor);
@@ -133,6 +107,7 @@ public class PlayerRiskOverlay extends Overlay
         else return String.valueOf(value);
     }
 
+    // Bruk player.getCanvasTextLocation i stedet for convex hull
     private java.awt.Point getTextLocation(Graphics2D graphics, Player player, String riskText)
     {
         if (player == null || riskText == null)
@@ -143,33 +118,70 @@ public class PlayerRiskOverlay extends Overlay
         {
             return null;
         }
-        // Bruk spillerens convex hull for nøyaktig posisjonering
-        Shape hull = player.getConvexHull();
-        if (hull == null)
-        {
-            return null;
-        }
-        Rectangle bounds = hull.getBounds();
-        int centerX = bounds.x + bounds.width / 2;
-        int centerY = bounds.y + bounds.height / 2;
-        int y;
+        int yOffset;
         switch (config.textPosition())
         {
             case ABOVE:
-                y = bounds.y - 5;
+                yOffset = -20;  // juster etter behov
                 break;
             case MIDDLE:
-                y = centerY;
+                yOffset = 0;
                 break;
             case BELOW:
-                y = bounds.y + bounds.height + 5;
+                yOffset = 20;   // juster etter behov
                 break;
             default:
-                y = centerY;
+                yOffset = 0;
                 break;
         }
-        int textWidth = graphics.getFontMetrics().stringWidth(riskText);
-        int x = centerX - textWidth / 2;
-        return new java.awt.Point(x, y);
+        return player.getCanvasTextLocation(graphics, riskText, yOffset);
+    }
+
+    // Internal enum for risk categories.
+    private enum RiskCategory
+    {
+        NONE,
+        LOW,
+        MEDIUM,
+        HIGH,
+        INSANE
+    }
+
+    private RiskCategory getRiskCategory(int riskValue)
+    {
+        if (riskValue > config.insaneRiskGP())
+        {
+            return RiskCategory.INSANE;
+        }
+        else if (riskValue > config.highRiskGP())
+        {
+            return RiskCategory.HIGH;
+        }
+        else if (riskValue > config.mediumRiskGP())
+        {
+            return RiskCategory.MEDIUM;
+        }
+        else if (riskValue > config.lowRiskGP())
+        {
+            return RiskCategory.LOW;
+        }
+        return RiskCategory.NONE;
+    }
+
+    private boolean isCategoryEnabled(RiskCategory category)
+    {
+        switch (category)
+        {
+            case LOW:
+                return config.enableLowRisk();
+            case MEDIUM:
+                return config.enableMediumRisk();
+            case HIGH:
+                return config.enableHighRisk();
+            case INSANE:
+                return config.enableInsaneRisk();
+            default:
+                return false;
+        }
     }
 }
