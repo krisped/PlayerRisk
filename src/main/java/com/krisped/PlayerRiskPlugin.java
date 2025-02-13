@@ -12,7 +12,7 @@ import net.runelite.client.ui.overlay.OverlayManager;
 
 @Slf4j
 @PluginDescriptor(
-        name = "Player Risk Highlighter",
+        name = "[KP] Player Risk Highlighter",
         description = "Highlights players based on their risk",
         tags = {"pvp", "risk", "outline"}
 )
