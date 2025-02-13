@@ -12,7 +12,7 @@ import net.runelite.client.ui.overlay.OverlayManager;
 
 @Slf4j
 @PluginDescriptor(
-        name = "[KP] Player Risk Highlight",
+        name = "Player Risk Highlighter",
         description = "Highlights players based on their risk",
         tags = {"pvp", "risk", "outline"}
 )
@@ -28,6 +28,9 @@ public class PlayerRiskPlugin extends Plugin
     private PlayerRiskMinimapOverlay playerRiskMinimapOverlay;
 
     @Inject
+    private RiskSummaryOverlay riskSummaryOverlay;
+
+    @Inject
     private OverlayManager overlayManager;
 
     @Inject
@@ -36,18 +39,18 @@ public class PlayerRiskPlugin extends Plugin
     @Inject
     private ItemManager itemManager;
 
-    private RiskSummaryOverlay riskSummaryOverlay;
+    // Injekt CombatManager (du kan konfigurere timeout via config)
+    @Inject
+    private CombatManager combatManager;
 
     @Override
     protected void startUp() throws Exception
     {
         log.info("Player Risk Plugin started!");
         playerRiskOverlay.setEnabled(true);
-        playerRiskMinimapOverlay.setEnabled(true);
+        // Her sørger vi for å sende med combatManager til overlayene
         overlayManager.add(playerRiskOverlay);
         overlayManager.add(playerRiskMinimapOverlay);
-
-        riskSummaryOverlay = new RiskSummaryOverlay(client, itemManager, config);
         overlayManager.add(riskSummaryOverlay);
     }
 
@@ -58,9 +61,6 @@ public class PlayerRiskPlugin extends Plugin
         overlayManager.remove(playerRiskOverlay);
         overlayManager.remove(playerRiskMinimapOverlay);
         overlayManager.remove(riskSummaryOverlay);
-        overlayManager.removeIf(o -> o instanceof PlayerRiskOverlay || o instanceof PlayerRiskMinimapOverlay);
-        playerRiskOverlay.setEnabled(false);
-        playerRiskMinimapOverlay.setEnabled(false);
     }
 
     @Provides

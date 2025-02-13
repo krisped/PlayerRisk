@@ -27,16 +27,17 @@ public class PlayerRiskOverlay extends Overlay {
     private final ItemManager itemManager;
     private final ModelOutlineRenderer modelOutlineRenderer;
     private final PlayerRiskConfig config;
-
+    private final CombatManager combatManager;
     // Variabel for å styre om overlayen skal rendere
     private boolean enabled = true;
 
     @Inject
-    public PlayerRiskOverlay(Client client, ItemManager itemManager, ModelOutlineRenderer modelOutlineRenderer, PlayerRiskConfig config) {
+    public PlayerRiskOverlay(Client client, ItemManager itemManager, ModelOutlineRenderer modelOutlineRenderer, PlayerRiskConfig config, CombatManager combatManager) {
         this.client = client;
         this.itemManager = itemManager;
         this.modelOutlineRenderer = modelOutlineRenderer;
         this.config = config;
+        this.combatManager = combatManager;
         setPosition(OverlayPosition.DYNAMIC);
         setPriority(OverlayPriority.HIGH);
     }
@@ -50,6 +51,11 @@ public class PlayerRiskOverlay extends Overlay {
     public Dimension render(Graphics2D graphics) {
         if (!enabled) {
             return null; // Stopp rendering hvis deaktivert
+        }
+
+        // Sjekk om vi skal deaktivere alt under kamp (inkludert outlines, tile, hull og tekst)
+        if (config.disableHighlightInCombat() && combatManager.isInCombat()) {
+            return null;
         }
 
         for (Player player : client.getPlayers()) {
@@ -154,7 +160,6 @@ public class PlayerRiskOverlay extends Overlay {
 
         Shape convexHull = player.getConvexHull();
         if (convexHull != null) {
-            // Forsøk å hente minY og maxY direkte hvis convexHull er et Polygon
             if (convexHull instanceof Polygon) {
                 Polygon poly = (Polygon) convexHull;
                 int minY = Integer.MAX_VALUE;
@@ -170,12 +175,10 @@ public class PlayerRiskOverlay extends Overlay {
                 headY = bounds.y;
                 feetY = bounds.y + bounds.height;
             }
-            // Bruk hullens bounding box for horisontal posisjonering
             Rectangle hullBounds = convexHull.getBounds();
             centerX = hullBounds.x + hullBounds.width / 2;
             int centerY = (headY + feetY) / 2;
 
-            // Posisjoner basert på valgt modus
             switch (config.textPosition()) {
                 case OVER:
                     baseline = headY - 2 + metrics.getAscent();
@@ -189,7 +192,6 @@ public class PlayerRiskOverlay extends Overlay {
                     break;
             }
         } else {
-            // Fall tilbake: bruk canvas-tekstposisjonering
             net.runelite.api.Point canvasText = player.getCanvasTextLocation(graphics, riskText, player.getLogicalHeight() / 2);
             if (canvasText == null)
                 return;
@@ -233,7 +235,7 @@ public class PlayerRiskOverlay extends Overlay {
 
     boolean isCategoryEnabled(RiskCategory category) {
         if (!config.enableLowRisk() && !config.enableMediumRisk() && !config.enableHighRisk() && !config.enableInsaneRisk()) {
-            return false; // Deaktiver alt hvis ingen risiko er slått på
+            return false;
         }
         switch (category) {
             case LOW:

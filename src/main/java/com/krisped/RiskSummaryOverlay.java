@@ -16,29 +16,33 @@ import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.components.TitleComponent;
 import net.runelite.client.ui.overlay.components.LineComponent;
+import javax.inject.Inject;
 
-public class RiskSummaryOverlay extends OverlayPanel
-{
+public class RiskSummaryOverlay extends OverlayPanel {
     private final Client client;
     private final ItemManager itemManager;
     private final PlayerRiskConfig config;
+    private final CombatManager combatManager;
     private static final int DISTANCE_THRESHOLD = 50;
 
-    public RiskSummaryOverlay(Client client, ItemManager itemManager, PlayerRiskConfig config)
-    {
+    @Inject
+    public RiskSummaryOverlay(Client client, ItemManager itemManager, PlayerRiskConfig config, CombatManager combatManager) {
         this.client = client;
         this.itemManager = itemManager;
         this.config = config;
+        this.combatManager = combatManager;
         setPosition(OverlayPosition.TOP_LEFT);
     }
 
     @Override
-    public Dimension render(Graphics2D graphics)
-    {
+    public Dimension render(Graphics2D graphics) {
         if (!config.showOverlay() ||
                 config.overlayDisplayType() == PlayerRiskConfig.OverlayDisplayType.DISABLED ||
                 client.getLocalPlayer() == null)
         {
+            return null;
+        }
+        if (config.disableHighlightInCombat() && combatManager.isInCombat()) {
             return null;
         }
 
@@ -52,8 +56,7 @@ public class RiskSummaryOverlay extends OverlayPanel
 
         // PvP-modus
         String pvpStatus;
-        switch(config.pvpMode())
-        {
+        switch(config.pvpMode()) {
             case OFF:
                 pvpStatus = "Off";
                 break;
@@ -83,11 +86,10 @@ public class RiskSummaryOverlay extends OverlayPanel
         Map<PlayerRiskOverlay.RiskCategory, Integer> counts = calculateRiskCounts();
         PlayerRiskConfig.OverlayDisplayType displayType = config.overlayDisplayType();
 
-        // Low Risk (bruker minimum 1000)
-        if (config.enableLowRisk())
-        {
+        // Low Risk (bruker slider-verdi, men låst til minimum 1000 via @Range)
+        if (config.enableLowRisk()) {
             String colorHex = toHex(config.lowRiskColor());
-            int effectiveLow = config.lowRiskGP(); // Nå garantert >= 1000 via config
+            int effectiveLow = config.lowRiskGP(); // Alltid >= 1000
             String leftLabel = (displayType == PlayerRiskConfig.OverlayDisplayType.RISK_CATEGORIES)
                     ? "<col=" + colorHex + ">Low"
                     : "<col=" + colorHex + ">" + formatRiskValue(effectiveLow);
@@ -100,8 +102,7 @@ public class RiskSummaryOverlay extends OverlayPanel
         }
 
         // Medium Risk
-        if (config.enableMediumRisk())
-        {
+        if (config.enableMediumRisk()) {
             String colorHex = toHex(config.mediumRiskColor());
             String leftLabel = (displayType == PlayerRiskConfig.OverlayDisplayType.RISK_CATEGORIES)
                     ? "<col=" + colorHex + ">Medium"
@@ -115,8 +116,7 @@ public class RiskSummaryOverlay extends OverlayPanel
         }
 
         // High Risk
-        if (config.enableHighRisk())
-        {
+        if (config.enableHighRisk()) {
             String colorHex = toHex(config.highRiskColor());
             String leftLabel = (displayType == PlayerRiskConfig.OverlayDisplayType.RISK_CATEGORIES)
                     ? "<col=" + colorHex + ">High"
@@ -130,8 +130,7 @@ public class RiskSummaryOverlay extends OverlayPanel
         }
 
         // Insane Risk
-        if (config.enableInsaneRisk())
-        {
+        if (config.enableInsaneRisk()) {
             String colorHex = toHex(config.insaneRiskColor());
             String leftLabel = (displayType == PlayerRiskConfig.OverlayDisplayType.RISK_CATEGORIES)
                     ? "<col=" + colorHex + ">Insane"
@@ -147,33 +146,24 @@ public class RiskSummaryOverlay extends OverlayPanel
         return super.render(graphics);
     }
 
-    private Map<PlayerRiskOverlay.RiskCategory, Integer> calculateRiskCounts()
-    {
+    private Map<PlayerRiskOverlay.RiskCategory, Integer> calculateRiskCounts() {
         Map<PlayerRiskOverlay.RiskCategory, Integer> counts = new EnumMap<>(PlayerRiskOverlay.RiskCategory.class);
-        for (PlayerRiskOverlay.RiskCategory cat : PlayerRiskOverlay.RiskCategory.values())
-        {
+        for (PlayerRiskOverlay.RiskCategory cat : PlayerRiskOverlay.RiskCategory.values()) {
             counts.put(cat, 0);
         }
-
         WorldPoint localLocation = client.getLocalPlayer().getWorldLocation();
         PlayerRiskConfig.PvPMode pvpMode = config.pvpMode();
-
-        for (Player player : client.getPlayers())
-        {
+        for (Player player : client.getPlayers()) {
             if (player == null || player.getName() == null || player == client.getLocalPlayer())
                 continue;
-
-            if (pvpMode != PlayerRiskConfig.PvPMode.OFF)
-            {
+            if (pvpMode != PlayerRiskConfig.PvPMode.OFF) {
                 boolean inPvPWorld = client.getWorldType().contains(WorldType.PVP);
                 boolean inWilderness = client.getVar(Varbits.IN_WILDERNESS) > 0;
                 if (!inPvPWorld && !inWilderness)
                     continue;
-                if (pvpMode == PlayerRiskConfig.PvPMode.ATTACKABLE)
-                {
+                if (pvpMode == PlayerRiskConfig.PvPMode.ATTACKABLE) {
                     Player local = client.getLocalPlayer();
-                    if (local != null)
-                    {
+                    if (local != null) {
                         int localCombat = local.getCombatLevel();
                         int targetCombat = player.getCombatLevel();
                         int allowedDiff = 15;
@@ -184,14 +174,12 @@ public class RiskSummaryOverlay extends OverlayPanel
                     }
                 }
             }
-
             WorldPoint playerLocation = player.getWorldLocation();
             int dx = Math.abs(playerLocation.getX() - localLocation.getX());
             int dy = Math.abs(playerLocation.getY() - localLocation.getY());
             int distance = Math.max(dx, dy);
             if (distance > DISTANCE_THRESHOLD)
                 continue;
-
             int risk = calculatePlayerRisk(player);
             PlayerRiskOverlay.RiskCategory category = getRiskCategory(risk);
             if (category != PlayerRiskOverlay.RiskCategory.NONE)
@@ -200,13 +188,11 @@ public class RiskSummaryOverlay extends OverlayPanel
         return counts;
     }
 
-    private int calculatePlayerRisk(Player player)
-    {
+    private int calculatePlayerRisk(Player player) {
         if (player.getPlayerComposition() == null)
             return 0;
         int total = 0;
-        for (KitType kit : KitType.values())
-        {
+        for (KitType kit : KitType.values()) {
             int itemId = player.getPlayerComposition().getEquipmentId(kit);
             if (itemId > 0)
                 total += itemManager.getItemPrice(itemId);
@@ -214,8 +200,7 @@ public class RiskSummaryOverlay extends OverlayPanel
         return total;
     }
 
-    private PlayerRiskOverlay.RiskCategory getRiskCategory(int riskValue)
-    {
+    private PlayerRiskOverlay.RiskCategory getRiskCategory(int riskValue) {
         int lowThreshold = Math.max(config.lowRiskGP(), 1000);
         if (riskValue > config.insaneRiskGP())
             return PlayerRiskOverlay.RiskCategory.INSANE;
@@ -228,8 +213,7 @@ public class RiskSummaryOverlay extends OverlayPanel
         return PlayerRiskOverlay.RiskCategory.NONE;
     }
 
-    private String formatRiskValue(int value)
-    {
+    private String formatRiskValue(int value) {
         if (value >= 1_000_000)
             return String.format("%.1fM", value / 1_000_000.0);
         else if (value >= 1_000)
@@ -238,8 +222,7 @@ public class RiskSummaryOverlay extends OverlayPanel
             return String.valueOf(value);
     }
 
-    private String toHex(Color color)
-    {
+    private String toHex(Color color) {
         return String.format("%02X%02X%02X", color.getRed(), color.getGreen(), color.getBlue());
     }
 }

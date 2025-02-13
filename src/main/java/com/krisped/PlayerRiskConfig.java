@@ -222,6 +222,25 @@ public interface PlayerRiskConfig extends Config {
     )
     default OverlayDisplayType overlayDisplayType() { return OverlayDisplayType.RISK_CATEGORIES; }
 
+    @ConfigItem(
+            keyName = "disableHighlightInCombat",
+            name = "Turn off in combat",
+            description = "Disable risk highlights while you are in combat.",
+            position = 10,
+            section = displaySettingsSection
+    )
+    default boolean disableHighlightInCombat() { return false; }
+
+    @Range(min = 1, max = 60)
+    @ConfigItem(
+            keyName = "combatTimeout",
+            name = "Combat Timeout (sec)",
+            description = "Seconds after combat ends before risk highlights re-enable.",
+            position = 11,
+            section = displaySettingsSection
+    )
+    default int combatTimeout() { return 5; }
+
     enum TextPosition {
         DISABLED("Disabled"),
         OVER("Over"),

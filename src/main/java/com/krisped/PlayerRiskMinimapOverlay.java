@@ -1,46 +1,45 @@
 package com.krisped;
 
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Graphics2D;
+import java.util.HashSet;
+import java.util.Set;
 import net.runelite.api.Client;
 import net.runelite.api.Player;
 import net.runelite.api.Point; // For minimap location
 import net.runelite.api.kit.KitType;
 import net.runelite.api.Varbits;
 import net.runelite.api.WorldType;
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayPriority;
 import net.runelite.client.ui.overlay.OverlayUtil;
-
 import javax.inject.Inject;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics2D;
-import java.util.HashSet;
-import java.util.Set;
 
 public class PlayerRiskMinimapOverlay extends Overlay {
 
     private final Client client;
     private final ItemManager itemManager;
     private final PlayerRiskConfig config;
-
-    // Variabel for å styre om overlayen skal rendere
+    private final CombatManager combatManager;
     private boolean enabled = true;
 
     @Inject
-    public PlayerRiskMinimapOverlay(Client client, ItemManager itemManager, PlayerRiskConfig config) {
+    public PlayerRiskMinimapOverlay(Client client, ItemManager itemManager, PlayerRiskConfig config, CombatManager combatManager) {
         this.client = client;
         this.itemManager = itemManager;
         this.config = config;
+        this.combatManager = combatManager;
         setLayer(OverlayLayer.ABOVE_WIDGETS);
         // OverlayPosition.MINIMAP finnes ikke, så vi bruker DYNAMIC.
         setPosition(OverlayPosition.DYNAMIC);
         setPriority(OverlayPriority.HIGH);
     }
 
-    // Metode for å skru rendering av og på
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
@@ -48,16 +47,21 @@ public class PlayerRiskMinimapOverlay extends Overlay {
     @Override
     public Dimension render(Graphics2D graphics) {
         if (!enabled) {
-            return null; // Stopp rendering hvis deaktivert
+            return null;
+        }
+        if (client.getLocalPlayer() == null) {
+            return null;
+        }
+        // Dersom "Turn off in combat" er aktivert og vi er i kamp (eller innenfor timeout), deaktiver overlayet
+        if (config.disableHighlightInCombat() && combatManager.isInCombat()) {
+            return null;
         }
 
         Set<Point> usedMinimapLocations = new HashSet<>();
-
         for (Player player : client.getPlayers()) {
             if (player == null || player.getName() == null)
                 continue;
-
-            // PvP-modus filtrering
+            // PvP-filtrering
             PlayerRiskConfig.PvPMode pvpMode = config.pvpMode();
             if (pvpMode != PlayerRiskConfig.PvPMode.OFF) {
                 boolean inPvPWorld = client.getWorldType().contains(WorldType.PVP);
@@ -77,7 +81,6 @@ public class PlayerRiskMinimapOverlay extends Overlay {
                     }
                 }
             }
-
             int totalRisk = calculatePlayerRisk(player);
             PlayerRiskOverlay.RiskCategory category = getRiskCategory(totalRisk);
             if (category == PlayerRiskOverlay.RiskCategory.NONE)
@@ -91,8 +94,6 @@ public class PlayerRiskMinimapOverlay extends Overlay {
             Point minimapLoc = player.getMinimapLocation();
             if (minimapLoc == null)
                 continue;
-
-            // Unngå overlapping på samme minimap-koordinat
             if (usedMinimapLocations.contains(minimapLoc))
                 continue;
             usedMinimapLocations.add(minimapLoc);
@@ -105,11 +106,9 @@ public class PlayerRiskMinimapOverlay extends Overlay {
                     break;
                 case RISK:
                     String riskText = formatRiskValue(totalRisk);
-                    // Kun viser risk-verdi, ikke spillernavn
                     OverlayUtil.renderTextLocation(graphics, minimapLoc, riskText, riskColor);
                     break;
                 default:
-                    // NONE: vis ingenting
                     break;
             }
         }
@@ -126,27 +125,6 @@ public class PlayerRiskMinimapOverlay extends Overlay {
                 total += itemManager.getItemPrice(itemId);
         }
         return total;
-    }
-
-    private Color getRiskColor(int riskValue) {
-        if (riskValue > config.insaneRiskGP())
-            return config.insaneRiskColor();
-        else if (riskValue > config.highRiskGP())
-            return config.highRiskColor();
-        else if (riskValue > config.mediumRiskGP())
-            return config.mediumRiskColor();
-        else if (riskValue > config.lowRiskGP())
-            return config.lowRiskColor();
-        return null;
-    }
-
-    private String formatRiskValue(int value) {
-        if (value >= 1_000_000)
-            return String.format("%.1fM", value / 1_000_000.0);
-        else if (value >= 1_000)
-            return String.format("%dK", value / 1_000);
-        else
-            return String.valueOf(value);
     }
 
     private PlayerRiskOverlay.RiskCategory getRiskCategory(int riskValue) {
@@ -174,5 +152,26 @@ public class PlayerRiskMinimapOverlay extends Overlay {
             default:
                 return false;
         }
+    }
+
+    private Color getRiskColor(int riskValue) {
+        if (riskValue > config.insaneRiskGP())
+            return config.insaneRiskColor();
+        else if (riskValue > config.highRiskGP())
+            return config.highRiskColor();
+        else if (riskValue > config.mediumRiskGP())
+            return config.mediumRiskColor();
+        else if (riskValue > config.lowRiskGP())
+            return config.lowRiskColor();
+        return null;
+    }
+
+    private String formatRiskValue(int value) {
+        if (value >= 1_000_000)
+            return String.format("%.1fM", value / 1_000_000.0);
+        else if (value >= 1_000)
+            return String.format("%dK", value / 1_000);
+        else
+            return String.valueOf(value);
     }
 }
