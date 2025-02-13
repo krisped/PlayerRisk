@@ -25,10 +25,11 @@ public interface PlayerRiskConfig extends Config {
     )
     default boolean enableLowRisk() { return false; }
 
+    @Range(min = 1000)
     @ConfigItem(
             keyName = "lowRiskGP",
             name = "Low Risk GP",
-            description = "Minimum GP value for a player to be considered low risk (must be >20,000).",
+            description = "Minimum GP value for a player to be considered low risk (cannot be lower than 1000).",
             position = 2,
             section = riskValuesSection
     )
@@ -42,7 +43,7 @@ public interface PlayerRiskConfig extends Config {
             position = 3,
             section = riskValuesSection
     )
-    default Color lowRiskColor() { return Color.BLUE; }
+    default Color lowRiskColor() { return new Color(0x66, 0xB2, 0xFF, 0xFF); } // #FF66B2FF
 
     // Medium Risk
     @ConfigItem(
@@ -71,7 +72,7 @@ public interface PlayerRiskConfig extends Config {
             position = 6,
             section = riskValuesSection
     )
-    default Color mediumRiskColor() { return Color.GREEN; }
+    default Color mediumRiskColor() { return new Color(0x99, 0xFF, 0x99, 0xFF); } // #FF99FF99
 
     // High Risk
     @ConfigItem(
@@ -100,7 +101,7 @@ public interface PlayerRiskConfig extends Config {
             position = 9,
             section = riskValuesSection
     )
-    default Color highRiskColor() { return Color.ORANGE; }
+    default Color highRiskColor() { return new Color(0xFF, 0x96, 0x00, 0xFF); } // #FFFF9600
 
     // Insane Risk
     @ConfigItem(
@@ -129,13 +130,13 @@ public interface PlayerRiskConfig extends Config {
             position = 12,
             section = riskValuesSection
     )
-    default Color insaneRiskColor() { return Color.PINK; }
+    default Color insaneRiskColor() { return new Color(0xFF, 0x62, 0xB2, 0xFF); } // #FFFF62B2
 
     // --- Display Settings ---
     @ConfigSection(
             name = "Display Settings",
             description = "Configure overlay display options.",
-            position = 1,
+            position = 13,
             closedByDefault = false
     )
     String displaySettingsSection = "displaySettingsSection";
@@ -203,6 +204,24 @@ public interface PlayerRiskConfig extends Config {
     )
     default boolean enableHull() { return false; }
 
+    @ConfigItem(
+            keyName = "showOverlay",
+            name = "Show Risk Overlay",
+            description = "Toggle the display of the risk summary overlay",
+            position = 8,
+            section = displaySettingsSection
+    )
+    default boolean showOverlay() { return true; }
+
+    @ConfigItem(
+            keyName = "overlayDisplayType",
+            name = "Overlay Display Type",
+            description = "Select how the overlay displays risk:\n• Disabled: Do not display overlay\n• Risk Categories: Show category names (Low, Medium, High, Insane)\n• Risk Amounts: Show threshold amounts",
+            position = 9,
+            section = displaySettingsSection
+    )
+    default OverlayDisplayType overlayDisplayType() { return OverlayDisplayType.RISK_CATEGORIES; }
+
     enum TextPosition {
         DISABLED("Disabled"),
         OVER("Over"),
@@ -228,6 +247,17 @@ public interface PlayerRiskConfig extends Config {
 
         private final String displayName;
         MinimapDisplayMode(String displayName) { this.displayName = displayName; }
+        @Override
+        public String toString() { return displayName; }
+    }
+
+    enum OverlayDisplayType {
+        DISABLED("Disabled"),
+        RISK_CATEGORIES("Risk Categories"),
+        RISK_AMOUNTS("Risk Amounts");
+
+        private final String displayName;
+        OverlayDisplayType(String displayName) { this.displayName = displayName; }
         @Override
         public String toString() { return displayName; }
     }

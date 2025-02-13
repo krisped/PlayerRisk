@@ -5,6 +5,7 @@ import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
@@ -24,7 +25,7 @@ public class PlayerRiskPlugin extends Plugin
     private PlayerRiskOverlay playerRiskOverlay;
 
     @Inject
-    private PlayerRiskMinimapOverlay playerRiskMinimapOverlay; // lagt til
+    private PlayerRiskMinimapOverlay playerRiskMinimapOverlay;
 
     @Inject
     private OverlayManager overlayManager;
@@ -32,12 +33,22 @@ public class PlayerRiskPlugin extends Plugin
     @Inject
     private PlayerRiskConfig config;
 
+    @Inject
+    private ItemManager itemManager;
+
+    private RiskSummaryOverlay riskSummaryOverlay;
+
     @Override
     protected void startUp() throws Exception
     {
         log.info("Player Risk Plugin started!");
+        playerRiskOverlay.setEnabled(true);
+        playerRiskMinimapOverlay.setEnabled(true);
         overlayManager.add(playerRiskOverlay);
-        overlayManager.add(playerRiskMinimapOverlay); // lagt til
+        overlayManager.add(playerRiskMinimapOverlay);
+
+        riskSummaryOverlay = new RiskSummaryOverlay(client, itemManager, config);
+        overlayManager.add(riskSummaryOverlay);
     }
 
     @Override
@@ -45,7 +56,11 @@ public class PlayerRiskPlugin extends Plugin
     {
         log.info("Player Risk Plugin stopped!");
         overlayManager.remove(playerRiskOverlay);
-        overlayManager.remove(playerRiskMinimapOverlay); // lagt til
+        overlayManager.remove(playerRiskMinimapOverlay);
+        overlayManager.remove(riskSummaryOverlay);
+        overlayManager.removeIf(o -> o instanceof PlayerRiskOverlay || o instanceof PlayerRiskMinimapOverlay);
+        playerRiskOverlay.setEnabled(false);
+        playerRiskMinimapOverlay.setEnabled(false);
     }
 
     @Provides

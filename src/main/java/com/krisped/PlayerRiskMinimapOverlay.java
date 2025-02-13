@@ -17,12 +17,17 @@ import javax.inject.Inject;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
+import java.util.HashSet;
+import java.util.Set;
 
 public class PlayerRiskMinimapOverlay extends Overlay {
 
     private final Client client;
     private final ItemManager itemManager;
     private final PlayerRiskConfig config;
+
+    // Variabel for å styre om overlayen skal rendere
+    private boolean enabled = true;
 
     @Inject
     public PlayerRiskMinimapOverlay(Client client, ItemManager itemManager, PlayerRiskConfig config) {
@@ -35,8 +40,19 @@ public class PlayerRiskMinimapOverlay extends Overlay {
         setPriority(OverlayPriority.HIGH);
     }
 
+    // Metode for å skru rendering av og på
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
     @Override
     public Dimension render(Graphics2D graphics) {
+        if (!enabled) {
+            return null; // Stopp rendering hvis deaktivert
+        }
+
+        Set<Point> usedMinimapLocations = new HashSet<>();
+
         for (Player player : client.getPlayers()) {
             if (player == null || player.getName() == null)
                 continue;
@@ -75,6 +91,11 @@ public class PlayerRiskMinimapOverlay extends Overlay {
             Point minimapLoc = player.getMinimapLocation();
             if (minimapLoc == null)
                 continue;
+
+            // Unngå overlapping på samme minimap-koordinat
+            if (usedMinimapLocations.contains(minimapLoc))
+                continue;
+            usedMinimapLocations.add(minimapLoc);
 
             switch (config.minimapDisplayMode()) {
                 case DOT:

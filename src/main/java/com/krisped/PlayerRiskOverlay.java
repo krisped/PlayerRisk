@@ -28,6 +28,9 @@ public class PlayerRiskOverlay extends Overlay {
     private final ModelOutlineRenderer modelOutlineRenderer;
     private final PlayerRiskConfig config;
 
+    // Variabel for å styre om overlayen skal rendere
+    private boolean enabled = true;
+
     @Inject
     public PlayerRiskOverlay(Client client, ItemManager itemManager, ModelOutlineRenderer modelOutlineRenderer, PlayerRiskConfig config) {
         this.client = client;
@@ -38,8 +41,17 @@ public class PlayerRiskOverlay extends Overlay {
         setPriority(OverlayPriority.HIGH);
     }
 
+    // Metode for å skru rendering av og på
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
     @Override
     public Dimension render(Graphics2D graphics) {
+        if (!enabled) {
+            return null; // Stopp rendering hvis deaktivert
+        }
+
         for (Player player : client.getPlayers()) {
             if (player == null || player.getName() == null)
                 continue;
@@ -158,7 +170,7 @@ public class PlayerRiskOverlay extends Overlay {
                 headY = bounds.y;
                 feetY = bounds.y + bounds.height;
             }
-            // Vi bruker hullens bounding box for horisontal posisjonering
+            // Bruk hullens bounding box for horisontal posisjonering
             Rectangle hullBounds = convexHull.getBounds();
             centerX = hullBounds.x + hullBounds.width / 2;
             int centerY = (headY + feetY) / 2;
@@ -166,16 +178,13 @@ public class PlayerRiskOverlay extends Overlay {
             // Posisjoner basert på valgt modus
             switch (config.textPosition()) {
                 case OVER:
-                    // Plasser teksten slik at dens bunn (baseline - ascent) er like over hodet
                     baseline = headY - 2 + metrics.getAscent();
                     break;
                 case UNDER:
-                    // Plasser teksten slik at dens topp (baseline - ascent) er rett under føttene
                     baseline = feetY + 2 + metrics.getAscent();
                     break;
                 case CENTER:
                 default:
-                    // Sentrer teksten vertikalt i modellen
                     baseline = centerY + (metrics.getAscent() - metrics.getDescent()) / 2;
                     break;
             }
@@ -223,6 +232,9 @@ public class PlayerRiskOverlay extends Overlay {
     }
 
     boolean isCategoryEnabled(RiskCategory category) {
+        if (!config.enableLowRisk() && !config.enableMediumRisk() && !config.enableHighRisk() && !config.enableInsaneRisk()) {
+            return false; // Deaktiver alt hvis ingen risiko er slått på
+        }
         switch (category) {
             case LOW:
                 return config.enableLowRisk();
