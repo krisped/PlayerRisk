@@ -11,7 +11,6 @@ import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayPriority;
 import net.runelite.client.ui.overlay.outline.ModelOutlineRenderer;
-
 import javax.inject.Inject;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -28,7 +27,6 @@ public class PlayerRiskOverlay extends Overlay {
     private final ModelOutlineRenderer modelOutlineRenderer;
     private final PlayerRiskConfig config;
     private final CombatManager combatManager;
-    // Variabel for å styre om overlayen skal rendere
     private boolean enabled = true;
 
     @Inject
@@ -42,19 +40,13 @@ public class PlayerRiskOverlay extends Overlay {
         setPriority(OverlayPriority.HIGH);
     }
 
-    // Metode for å skru rendering av og på
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
 
     @Override
     public Dimension render(Graphics2D graphics) {
-        if (!enabled) {
-            return null; // Stopp rendering hvis deaktivert
-        }
-
-        // Sjekk om vi skal deaktivere alt under kamp (inkludert outlines, tile, hull og tekst)
-        if (config.disableHighlightInCombat() && combatManager.isInCombat()) {
+        if (!enabled || config.disableHighlightInCombat() && combatManager.isInCombat()) {
             return null;
         }
 
@@ -83,11 +75,10 @@ public class PlayerRiskOverlay extends Overlay {
                 }
             }
 
-            int totalRisk = calculatePlayerRisk(player);
-            RiskCategory category = getRiskCategory(totalRisk);
-            if (category == RiskCategory.NONE)
-                continue;
-            if (!isCategoryEnabled(category))
+            // Bruker RiskCalculator for risikoberegning
+            int totalRisk = RiskCalculator.calculateRisk(player, itemManager);
+            RiskCategory category = RiskCalculator.getRiskCategory(totalRisk, config);
+            if (category == RiskCategory.NONE || !isCategoryEnabled(category))
                 continue;
             Color riskColor = getRiskColor(totalRisk);
             if (riskColor == null)
@@ -98,7 +89,7 @@ public class PlayerRiskOverlay extends Overlay {
                 modelOutlineRenderer.drawOutline(player, config.outlineThickness(), riskColor, 0);
             }
 
-            // Tegn tile-overlay (hvis aktiv)
+            // Tegn tile-overlay
             if (config.enableTile()) {
                 Polygon tilePoly = player.getCanvasTilePoly();
                 if (tilePoly != null) {
@@ -107,7 +98,7 @@ public class PlayerRiskOverlay extends Overlay {
                 }
             }
 
-            // Tegn hull-overlay (hvis aktiv)
+            // Tegn hull-overlay
             if (config.enableHull()) {
                 Shape hullShape = player.getConvexHull();
                 if (hullShape != null) {
@@ -116,25 +107,12 @@ public class PlayerRiskOverlay extends Overlay {
                 }
             }
 
-            // Tegn risikotekst med posisjonering basert på modellens polygon
+            // Tegn risikotekst
             if (config.textPosition() != PlayerRiskConfig.TextPosition.DISABLED) {
                 drawRiskText(graphics, player, totalRisk, riskColor);
             }
         }
         return null;
-    }
-
-    private int calculatePlayerRisk(Player player) {
-        PlayerComposition comp = player.getPlayerComposition();
-        if (comp == null)
-            return 0;
-        int total = 0;
-        for (KitType kit : KitType.values()) {
-            int itemId = comp.getEquipmentId(kit);
-            if (itemId > 0)
-                total += itemManager.getItemPrice(itemId);
-        }
-        return total;
     }
 
     private Color getRiskColor(int riskValue) {
@@ -212,7 +190,7 @@ public class PlayerRiskOverlay extends Overlay {
             return String.valueOf(value);
     }
 
-    // RiskCategory er package-private slik at minimap-overlayet også kan bruke den
+    // Risiko-kategorier slik at de kan brukes i RiskCalculator
     enum RiskCategory {
         NONE,
         LOW,
@@ -221,22 +199,7 @@ public class PlayerRiskOverlay extends Overlay {
         INSANE
     }
 
-    RiskCategory getRiskCategory(int riskValue) {
-        if (riskValue > config.insaneRiskGP())
-            return RiskCategory.INSANE;
-        else if (riskValue > config.highRiskGP())
-            return RiskCategory.HIGH;
-        else if (riskValue > config.mediumRiskGP())
-            return RiskCategory.MEDIUM;
-        else if (riskValue > config.lowRiskGP())
-            return RiskCategory.LOW;
-        return RiskCategory.NONE;
-    }
-
-    boolean isCategoryEnabled(RiskCategory category) {
-        if (!config.enableLowRisk() && !config.enableMediumRisk() && !config.enableHighRisk() && !config.enableInsaneRisk()) {
-            return false;
-        }
+    private boolean isCategoryEnabled(RiskCategory category) {
         switch (category) {
             case LOW:
                 return config.enableLowRisk();

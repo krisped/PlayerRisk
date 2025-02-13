@@ -16,8 +16,7 @@ import net.runelite.client.ui.overlay.OverlayManager;
         description = "Highlights players based on their risk",
         tags = {"pvp", "risk", "outline"}
 )
-public class PlayerRiskPlugin extends Plugin
-{
+public class PlayerRiskPlugin extends Plugin {
     @Inject
     private Client client;
 
@@ -39,24 +38,20 @@ public class PlayerRiskPlugin extends Plugin
     @Inject
     private ItemManager itemManager;
 
-    // Injekt CombatManager (du kan konfigurere timeout via config)
     @Inject
     private CombatManager combatManager;
 
     @Override
-    protected void startUp() throws Exception
-    {
+    protected void startUp() throws Exception {
         log.info("Player Risk Plugin started!");
         playerRiskOverlay.setEnabled(true);
-        // Her sørger vi for å sende med combatManager til overlayene
         overlayManager.add(playerRiskOverlay);
         overlayManager.add(playerRiskMinimapOverlay);
         overlayManager.add(riskSummaryOverlay);
     }
 
     @Override
-    protected void shutDown() throws Exception
-    {
+    protected void shutDown() throws Exception {
         log.info("Player Risk Plugin stopped!");
         overlayManager.remove(playerRiskOverlay);
         overlayManager.remove(playerRiskMinimapOverlay);
@@ -64,8 +59,7 @@ public class PlayerRiskPlugin extends Plugin
     }
 
     @Provides
-    PlayerRiskConfig provideConfig(ConfigManager configManager)
-    {
+    PlayerRiskConfig provideConfig(ConfigManager configManager) {
         return configManager.getConfig(PlayerRiskConfig.class);
     }
 }

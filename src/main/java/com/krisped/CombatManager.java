@@ -12,7 +12,7 @@ public class CombatManager {
     @Inject
     public CombatManager(Client client, PlayerRiskConfig config) {
         this.client = client;
-        // Hent timeout fra config (i sekunder) og konverter til millisekunder
+        // Timeout fra config (sekunder) konverteres til millisekunder
         this.combatTimeoutMillis = config.combatTimeout() * 1000L;
     }
 
@@ -21,13 +21,11 @@ public class CombatManager {
         if (local == null) {
             return false;
         }
-        // Spilleren er i kamp dersom den har en aktiv interaksjon
+        long now = System.currentTimeMillis();
         if (local.getInteracting() != null) {
-            lastCombatTime = System.currentTimeMillis();
+            lastCombatTime = now;
             return true;
         }
-        // Sjekk om tiden siden sist kamp er innenfor timeout
-        long timeSinceCombat = System.currentTimeMillis() - lastCombatTime;
-        return timeSinceCombat < combatTimeoutMillis;
+        return (now - lastCombatTime) < combatTimeoutMillis;
     }
 }

@@ -10,7 +10,6 @@ import net.runelite.api.Player;
 import net.runelite.api.Varbits;
 import net.runelite.api.WorldType;
 import net.runelite.api.coords.WorldPoint;
-import net.runelite.api.kit.KitType;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
@@ -48,13 +47,13 @@ public class RiskSummaryOverlay extends OverlayPanel {
 
         panelComponent.getChildren().clear();
 
-        // Tittel
+        // Alltid vis overskriften "Risk Summary"
         TitleComponent header = TitleComponent.builder()
                 .text("Risk Summary")
                 .build();
         panelComponent.getChildren().add(header);
 
-        // PvP-modus
+        // Alltid vis PvP Mode-linjen
         String pvpStatus;
         switch(config.pvpMode()) {
             case OFF:
@@ -76,7 +75,22 @@ public class RiskSummaryOverlay extends OverlayPanel {
                 .build();
         panelComponent.getChildren().add(pvpLine);
 
-        // Overskriftsrad for kolonner
+        // Dersom PvP-modus er On eller Attackable og du ikke er i et PvP-område,
+        // vises en advarsel på en egen linje, og resten av risk-tabellen skjules.
+        if (config.pvpMode() == PlayerRiskConfig.PvPMode.ON ||
+                config.pvpMode() == PlayerRiskConfig.PvPMode.ATTACKABLE) {
+            boolean inPvPWorld = client.getWorldType().contains(WorldType.PVP);
+            boolean inWilderness = client.getVar(Varbits.IN_WILDERNESS) > 0;
+            if (!inPvPWorld && !inWilderness) {
+                LineComponent warning = LineComponent.builder()
+                        .left("<col=FF0000>Not in PvP world")
+                        .build();
+                panelComponent.getChildren().add(warning);
+                return super.render(graphics);
+            }
+        }
+
+        // Overskriftsrad for risikotabellen
         LineComponent tableHeader = LineComponent.builder()
                 .left("Risk:")
                 .right("Players:")
@@ -86,10 +100,10 @@ public class RiskSummaryOverlay extends OverlayPanel {
         Map<PlayerRiskOverlay.RiskCategory, Integer> counts = calculateRiskCounts();
         PlayerRiskConfig.OverlayDisplayType displayType = config.overlayDisplayType();
 
-        // Low Risk (bruker slider-verdi, men låst til minimum 1000 via @Range)
+        // Low Risk
         if (config.enableLowRisk()) {
             String colorHex = toHex(config.lowRiskColor());
-            int effectiveLow = config.lowRiskGP(); // Alltid >= 1000
+            int effectiveLow = config.lowRiskGP();
             String leftLabel = (displayType == PlayerRiskConfig.OverlayDisplayType.RISK_CATEGORIES)
                     ? "<col=" + colorHex + ">Low"
                     : "<col=" + colorHex + ">" + formatRiskValue(effectiveLow);
@@ -180,37 +194,12 @@ public class RiskSummaryOverlay extends OverlayPanel {
             int distance = Math.max(dx, dy);
             if (distance > DISTANCE_THRESHOLD)
                 continue;
-            int risk = calculatePlayerRisk(player);
-            PlayerRiskOverlay.RiskCategory category = getRiskCategory(risk);
+            int risk = RiskCalculator.calculateRisk(player, itemManager);
+            PlayerRiskOverlay.RiskCategory category = RiskCalculator.getRiskCategory(risk, config);
             if (category != PlayerRiskOverlay.RiskCategory.NONE)
                 counts.put(category, counts.get(category) + 1);
         }
         return counts;
-    }
-
-    private int calculatePlayerRisk(Player player) {
-        if (player.getPlayerComposition() == null)
-            return 0;
-        int total = 0;
-        for (KitType kit : KitType.values()) {
-            int itemId = player.getPlayerComposition().getEquipmentId(kit);
-            if (itemId > 0)
-                total += itemManager.getItemPrice(itemId);
-        }
-        return total;
-    }
-
-    private PlayerRiskOverlay.RiskCategory getRiskCategory(int riskValue) {
-        int lowThreshold = Math.max(config.lowRiskGP(), 1000);
-        if (riskValue > config.insaneRiskGP())
-            return PlayerRiskOverlay.RiskCategory.INSANE;
-        else if (riskValue > config.highRiskGP())
-            return PlayerRiskOverlay.RiskCategory.HIGH;
-        else if (riskValue > config.mediumRiskGP())
-            return PlayerRiskOverlay.RiskCategory.MEDIUM;
-        else if (riskValue > lowThreshold)
-            return PlayerRiskOverlay.RiskCategory.LOW;
-        return PlayerRiskOverlay.RiskCategory.NONE;
     }
 
     private String formatRiskValue(int value) {

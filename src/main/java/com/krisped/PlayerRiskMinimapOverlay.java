@@ -7,11 +7,9 @@ import java.util.HashSet;
 import java.util.Set;
 import net.runelite.api.Client;
 import net.runelite.api.Player;
-import net.runelite.api.Point; // For minimap location
-import net.runelite.api.kit.KitType;
+import net.runelite.api.Point;
 import net.runelite.api.Varbits;
 import net.runelite.api.WorldType;
-import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
@@ -35,7 +33,7 @@ public class PlayerRiskMinimapOverlay extends Overlay {
         this.config = config;
         this.combatManager = combatManager;
         setLayer(OverlayLayer.ABOVE_WIDGETS);
-        // OverlayPosition.MINIMAP finnes ikke, så vi bruker DYNAMIC.
+        // Bruker DYNAMIC ettersom det ikke finnes en spesifikk MINIMAP-posisjon
         setPosition(OverlayPosition.DYNAMIC);
         setPriority(OverlayPriority.HIGH);
     }
@@ -46,21 +44,18 @@ public class PlayerRiskMinimapOverlay extends Overlay {
 
     @Override
     public Dimension render(Graphics2D graphics) {
-        if (!enabled) {
+        if (!enabled || client.getLocalPlayer() == null) {
             return null;
         }
-        if (client.getLocalPlayer() == null) {
-            return null;
-        }
-        // Dersom "Turn off in combat" er aktivert og vi er i kamp (eller innenfor timeout), deaktiver overlayet
         if (config.disableHighlightInCombat() && combatManager.isInCombat()) {
             return null;
         }
 
         Set<Point> usedMinimapLocations = new HashSet<>();
         for (Player player : client.getPlayers()) {
-            if (player == null || player.getName() == null)
+            if (player == null || player.getName() == null) {
                 continue;
+            }
             // PvP-filtrering
             PlayerRiskConfig.PvPMode pvpMode = config.pvpMode();
             if (pvpMode != PlayerRiskConfig.PvPMode.OFF) {
@@ -81,20 +76,18 @@ public class PlayerRiskMinimapOverlay extends Overlay {
                     }
                 }
             }
-            int totalRisk = calculatePlayerRisk(player);
-            PlayerRiskOverlay.RiskCategory category = getRiskCategory(totalRisk);
-            if (category == PlayerRiskOverlay.RiskCategory.NONE)
-                continue;
-            if (!isCategoryEnabled(category))
+
+            // Bruker RiskCalculator for å beregne risiko og bestemme kategori
+            int totalRisk = RiskCalculator.calculateRisk(player, itemManager);
+            PlayerRiskOverlay.RiskCategory category = RiskCalculator.getRiskCategory(totalRisk, config);
+            if (category == PlayerRiskOverlay.RiskCategory.NONE || !isCategoryEnabled(category))
                 continue;
             Color riskColor = getRiskColor(totalRisk);
             if (riskColor == null)
                 continue;
 
             Point minimapLoc = player.getMinimapLocation();
-            if (minimapLoc == null)
-                continue;
-            if (usedMinimapLocations.contains(minimapLoc))
+            if (minimapLoc == null || usedMinimapLocations.contains(minimapLoc))
                 continue;
             usedMinimapLocations.add(minimapLoc);
 
@@ -113,30 +106,6 @@ public class PlayerRiskMinimapOverlay extends Overlay {
             }
         }
         return null;
-    }
-
-    private int calculatePlayerRisk(Player player) {
-        if (player.getPlayerComposition() == null)
-            return 0;
-        int total = 0;
-        for (KitType kit : KitType.values()) {
-            int itemId = player.getPlayerComposition().getEquipmentId(kit);
-            if (itemId > 0)
-                total += itemManager.getItemPrice(itemId);
-        }
-        return total;
-    }
-
-    private PlayerRiskOverlay.RiskCategory getRiskCategory(int riskValue) {
-        if (riskValue > config.insaneRiskGP())
-            return PlayerRiskOverlay.RiskCategory.INSANE;
-        else if (riskValue > config.highRiskGP())
-            return PlayerRiskOverlay.RiskCategory.HIGH;
-        else if (riskValue > config.mediumRiskGP())
-            return PlayerRiskOverlay.RiskCategory.MEDIUM;
-        else if (riskValue > config.lowRiskGP())
-            return PlayerRiskOverlay.RiskCategory.LOW;
-        return PlayerRiskOverlay.RiskCategory.NONE;
     }
 
     private boolean isCategoryEnabled(PlayerRiskOverlay.RiskCategory category) {
