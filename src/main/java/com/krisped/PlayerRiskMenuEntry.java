@@ -62,6 +62,14 @@ public class PlayerRiskMenuEntry {
             return;
         }
 
+        // Sjekk om det allerede finnes et "Risk Check"-alternativ for denne spilleren
+        for (MenuEntry entry : client.getMenuEntries()) {
+            if (entry.getOption().contains(INSPECT_RISK) &&
+                    entry.getIdentifier() == event.getIdentifier()) {
+                return;
+            }
+        }
+
         // Hent fargen fra config og konverter til HEX-format
         Color menuColor = config.riskMenuColor();
         String colorHex = toHex(menuColor);

@@ -11,7 +11,7 @@ public interface PlayerRiskConfig extends Config {
             name = "Risk Values",
             description = "Configure risk categories: enable, GP threshold, and color.",
             position = 0,
-            closedByDefault = false
+            closedByDefault = true
     )
     String riskValuesSection = "riskValuesSection";
 
@@ -131,57 +131,48 @@ public interface PlayerRiskConfig extends Config {
     )
     default Color insaneRiskColor() { return new Color(0xFF, 0x62, 0xB2, 0xFF); }
 
-    // --- Display Settings ---
+    // --- Highlight Options ---
     @ConfigSection(
-            name = "Display Settings",
-            description = "Configure overlay display options.",
-            position = 13,
-            closedByDefault = false
+            name = "Highlight Options",
+            description = "Configure risk highlighting: text, outline, tile, hull, minimap, etc.",
+            position = 1,
+            closedByDefault = true
     )
-    String displaySettingsSection = "displaySettingsSection";
+    String highlightSection = "highlightSection";
+
+    @ConfigItem(
+            keyName = "riskText",
+            name = "Risk Text",
+            description = "Select risk text position relative to the player model.",
+            position = 1,
+            section = highlightSection
+    )
+    default TextPosition riskText() { return TextPosition.OVER; }
 
     @ConfigItem(
             keyName = "outlineThickness",
             name = "Outline Thickness",
             description = "Thickness of the outline drawn around players.",
-            position = 1,
-            section = displaySettingsSection
+            position = 2,
+            section = highlightSection
     )
     default int outlineThickness() { return 2; }
 
     @ConfigItem(
-            keyName = "textPosition",
-            name = "Text Position",
-            description = "Select text position relative to the player model:\n• OVER: Over head\n• CENTER: Center of model\n• UNDER: Below model\n• DISABLED: No text",
-            position = 2,
-            section = displaySettingsSection
-    )
-    default TextPosition textPosition() { return TextPosition.OVER; }
-
-    @ConfigItem(
-            keyName = "pvpMode",
-            name = "PvP Mode",
-            description = "Select which players to highlight:\n• OFF: All players\n• ON: Only players in PvP worlds/Wilderness\n• ATTACKABLE: Only players you can attack based on combat level",
-            position = 3,
-            section = displaySettingsSection
-    )
-    default PvPMode pvpMode() { return PvPMode.OFF; }
-
-    @ConfigItem(
             keyName = "minimapDisplayMode",
             name = "Minimap Display Mode",
-            description = "Select how risk is displayed on the minimap:\n• NONE: Do not display\n• DOT: Show a colored dot\n• RISK: Display risk value with player name",
-            position = 4,
-            section = displaySettingsSection
+            description = "Select how risk is displayed on the minimap.",
+            position = 3,
+            section = highlightSection
     )
     default MinimapDisplayMode minimapDisplayMode() { return MinimapDisplayMode.NONE; }
 
     @ConfigItem(
             keyName = "enableTile",
             name = "Enable Tile",
-            description = "Draw a tile overlay (using player's canvas tile poly) around the player (contour only).",
-            position = 5,
-            section = displaySettingsSection
+            description = "Draw a tile overlay around the player.",
+            position = 4,
+            section = highlightSection
     )
     default boolean enableTile() { return false; }
 
@@ -189,8 +180,8 @@ public interface PlayerRiskConfig extends Config {
             keyName = "enableOutline",
             name = "Enable Outline",
             description = "Draw an outline around the player.",
-            position = 6,
-            section = displaySettingsSection
+            position = 5,
+            section = highlightSection
     )
     default boolean enableOutline() { return true; }
 
@@ -198,17 +189,35 @@ public interface PlayerRiskConfig extends Config {
             keyName = "enableHull",
             name = "Enable Hull",
             description = "Draw the convex hull (ring) of the player's model.",
-            position = 7,
-            section = displaySettingsSection
+            position = 6,
+            section = highlightSection
     )
     default boolean enableHull() { return false; }
+
+    @ConfigItem(
+            keyName = "highlightLocalPlayer",
+            name = "Highlight Own Player",
+            description = "Include your own (local) player in risk highlighting and overlay.",
+            position = 7,
+            section = highlightSection
+    )
+    default boolean highlightLocalPlayer() { return false; }
+
+    @ConfigItem(
+            keyName = "pvpMode",
+            name = "PvP Mode",
+            description = "Select which players to highlight:\n• OFF: All players\n• ON: Only players in PvP worlds/Wilderness\n• ATTACKABLE: Only players you can attack based on combat level",
+            position = 8,
+            section = highlightSection
+    )
+    default PvPMode pvpMode() { return PvPMode.OFF; }
 
     @ConfigItem(
             keyName = "showOverlay",
             name = "Show Risk Overlay",
             description = "Toggle the display of the risk summary overlay",
-            position = 8,
-            section = displaySettingsSection
+            position = 9,
+            section = highlightSection
     )
     default boolean showOverlay() { return true; }
 
@@ -216,17 +225,26 @@ public interface PlayerRiskConfig extends Config {
             keyName = "overlayDisplayType",
             name = "Overlay Display Type",
             description = "Select how the overlay displays risk:\n• Disabled: Do not display overlay\n• Risk Categories: Show category names (Low, Medium, High, Insane)\n• Risk Amounts: Show threshold amounts",
-            position = 9,
-            section = displaySettingsSection
+            position = 10,
+            section = highlightSection
     )
     default OverlayDisplayType overlayDisplayType() { return OverlayDisplayType.RISK_CATEGORIES; }
 
+    // --- Combat Options ---
+    @ConfigSection(
+            name = "Combat Options",
+            description = "Configure combat-related highlighting settings.",
+            position = 2,
+            closedByDefault = true
+    )
+    String combatSection = "combatSection";
+
     @ConfigItem(
             keyName = "disableHighlightInCombat",
-            name = "Turn off in combat",
+            name = "Turn off in Combat",
             description = "Disable risk highlights while you are in combat.",
-            position = 10,
-            section = displaySettingsSection
+            position = 1,
+            section = combatSection
     )
     default boolean disableHighlightInCombat() { return false; }
 
@@ -235,11 +253,40 @@ public interface PlayerRiskConfig extends Config {
             keyName = "combatTimeout",
             name = "Combat Timeout (sec)",
             description = "Seconds after combat ends before risk highlights re-enable.",
-            position = 11,
-            section = displaySettingsSection
+            position = 2,
+            section = combatSection
     )
     default int combatTimeout() { return 5; }
 
+    // --- Risk Menu Options ---
+    @ConfigSection(
+            name = "Risk Menu Options",
+            description = "Configure when and how the Risk Check menu appears.",
+            position = 3,
+            closedByDefault = true
+    )
+    String riskMenuSection = "riskMenuSection";
+
+    @ConfigItem(
+            keyName = "riskMenuMode",
+            name = "Risk Menu Mode",
+            description = "Choose when to show the Risk Check menu: Disabled, RightClick, Shift + RightClick.",
+            position = 1,
+            section = riskMenuSection
+    )
+    default RiskMenuMode riskMenuMode() { return RiskMenuMode.RIGHT_CLICK; }
+
+    @Alpha
+    @ConfigItem(
+            keyName = "riskMenuColor",
+            name = "Risk Menu Color",
+            description = "Choose a color for the Risk Check menu option.",
+            position = 2,
+            section = riskMenuSection
+    )
+    default Color riskMenuColor() { return new Color(0xFF, 0xA5, 0x00, 0xFF); }
+
+    // --- Enum Definitions ---
     enum TextPosition {
         DISABLED("Disabled"),
         OVER("Over"),
@@ -280,52 +327,9 @@ public interface PlayerRiskConfig extends Config {
         public String toString() { return displayName; }
     }
 
-    // --- Risk Menu Settings ---
-    @ConfigSection(
-            name = "Risk Menu Settings",
-            description = "Configure when the Risk Check menu appears",
-            position = 0,
-            closedByDefault = false
-    )
-    String riskMenuSection = "riskMenuSection";
-
-    @ConfigItem(
-            keyName = "riskMenuMode",
-            name = "Risk Menu Mode",
-            description = "Choose when to show the Risk Check menu: Disabled, RightClick, Shift + RightClick",
-            position = 1,
-            section = riskMenuSection
-    )
-    default RiskMenuMode riskMenuMode() {
-        return RiskMenuMode.RIGHT_CLICK;
-    }
-
     enum RiskMenuMode {
         DISABLED,
         RIGHT_CLICK,
         SHIFT_RIGHT_CLICK
-    }
-
-    @Alpha
-    @ConfigItem(
-            keyName = "riskMenuColor",
-            name = "Risk Menu Color",
-            description = "Choose a color for the Risk Check menu option",
-            position = 2,
-            section = riskMenuSection
-    )
-    default Color riskMenuColor() {
-        return new Color(0xFF, 0xA5, 0x00, 0xFF);
-    }
-
-    @ConfigItem(
-            keyName = "highlightLocalPlayer",
-            name = "Highlight Own Player",
-            description = "Include your own (local) player in risk highlighting and overlay. (Default: not included)",
-            position = 3,
-            section = riskMenuSection
-    )
-    default boolean highlightLocalPlayer() {
-        return false;
     }
 }

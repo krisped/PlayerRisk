@@ -4,7 +4,6 @@ import net.runelite.api.Client;
 import net.runelite.api.Player;
 import net.runelite.api.Varbits;
 import net.runelite.api.WorldType;
-import net.runelite.api.kit.KitType;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayPosition;
@@ -110,8 +109,8 @@ public class PlayerRiskOverlay extends Overlay {
                 }
             }
 
-            // Tegn risikotekst
-            if (config.textPosition() != PlayerRiskConfig.TextPosition.DISABLED) {
+            // Tegn risikotekst (bruker den oppdaterte metoden riskText())
+            if (config.riskText() != PlayerRiskConfig.TextPosition.DISABLED) {
                 drawRiskText(graphics, player, totalRisk, riskColor);
             }
         }
@@ -160,7 +159,7 @@ public class PlayerRiskOverlay extends Overlay {
             centerX = hullBounds.x + hullBounds.width / 2;
             int centerY = (headY + feetY) / 2;
 
-            switch (config.textPosition()) {
+            switch (config.riskText()) {
                 case OVER:
                     baseline = headY - 2 + metrics.getAscent();
                     break;
