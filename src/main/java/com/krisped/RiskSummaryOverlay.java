@@ -47,13 +47,13 @@ public class RiskSummaryOverlay extends OverlayPanel {
 
         panelComponent.getChildren().clear();
 
-        // Alltid vis overskriften "Risk Summary"
+        // Overskrift for Risk Summary
         TitleComponent header = TitleComponent.builder()
                 .text("Risk Summary")
                 .build();
         panelComponent.getChildren().add(header);
 
-        // Alltid vis PvP Mode-linjen
+        // Vis PvP Mode-linje
         String pvpStatus;
         switch(config.pvpMode()) {
             case OFF:
@@ -75,8 +75,7 @@ public class RiskSummaryOverlay extends OverlayPanel {
                 .build();
         panelComponent.getChildren().add(pvpLine);
 
-        // Dersom PvP-modus er On eller Attackable og du ikke er i et PvP-område,
-        // vises en advarsel på en egen linje, og resten av risk-tabellen skjules.
+        // Hvis i PvP-modus og ikke i et PvP-område, vis advarsel
         if (config.pvpMode() == PlayerRiskConfig.PvPMode.ON ||
                 config.pvpMode() == PlayerRiskConfig.PvPMode.ATTACKABLE) {
             boolean inPvPWorld = client.getWorldType().contains(WorldType.PVP);
@@ -90,7 +89,7 @@ public class RiskSummaryOverlay extends OverlayPanel {
             }
         }
 
-        // Overskriftsrad for risikotabellen
+        // Overskrift for risikotabellen
         LineComponent tableHeader = LineComponent.builder()
                 .left("Risk:")
                 .right("Players:")
@@ -168,7 +167,10 @@ public class RiskSummaryOverlay extends OverlayPanel {
         WorldPoint localLocation = client.getLocalPlayer().getWorldLocation();
         PlayerRiskConfig.PvPMode pvpMode = config.pvpMode();
         for (Player player : client.getPlayers()) {
-            if (player == null || player.getName() == null || player == client.getLocalPlayer())
+            if (player == null || player.getName() == null)
+                continue;
+            // Ekskluder local player med mindre enabled i config
+            if (player.equals(client.getLocalPlayer()) && !config.highlightLocalPlayer())
                 continue;
             if (pvpMode != PlayerRiskConfig.PvPMode.OFF) {
                 boolean inPvPWorld = client.getWorldType().contains(WorldType.PVP);

@@ -33,7 +33,6 @@ public class PlayerRiskMinimapOverlay extends Overlay {
         this.config = config;
         this.combatManager = combatManager;
         setLayer(OverlayLayer.ABOVE_WIDGETS);
-        // Bruker DYNAMIC ettersom det ikke finnes en spesifikk MINIMAP-posisjon
         setPosition(OverlayPosition.DYNAMIC);
         setPriority(OverlayPriority.HIGH);
     }
@@ -56,6 +55,9 @@ public class PlayerRiskMinimapOverlay extends Overlay {
             if (player == null || player.getName() == null) {
                 continue;
             }
+            // Ekskluder local player med mindre enabled i config
+            if (player.equals(client.getLocalPlayer()) && !config.highlightLocalPlayer())
+                continue;
             // PvP-filtrering
             PlayerRiskConfig.PvPMode pvpMode = config.pvpMode();
             if (pvpMode != PlayerRiskConfig.PvPMode.OFF) {
@@ -77,7 +79,7 @@ public class PlayerRiskMinimapOverlay extends Overlay {
                 }
             }
 
-            // Bruker RiskCalculator for å beregne risiko og bestemme kategori
+            // Beregn risiko
             int totalRisk = RiskCalculator.calculateRisk(player, itemManager);
             PlayerRiskOverlay.RiskCategory category = RiskCalculator.getRiskCategory(totalRisk, config);
             if (category == PlayerRiskOverlay.RiskCategory.NONE || !isCategoryEnabled(category))

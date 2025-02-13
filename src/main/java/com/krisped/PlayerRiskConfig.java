@@ -15,7 +15,6 @@ public interface PlayerRiskConfig extends Config {
     )
     String riskValuesSection = "riskValuesSection";
 
-    // Low Risk
     @ConfigItem(
             keyName = "enableLowRisk",
             name = "Enable Low Risk",
@@ -43,7 +42,7 @@ public interface PlayerRiskConfig extends Config {
             position = 3,
             section = riskValuesSection
     )
-    default Color lowRiskColor() { return new Color(0x66, 0xB2, 0xFF, 0xFF); } // #FF66B2FF
+    default Color lowRiskColor() { return new Color(0x66, 0xB2, 0xFF, 0xFF); }
 
     // Medium Risk
     @ConfigItem(
@@ -72,7 +71,7 @@ public interface PlayerRiskConfig extends Config {
             position = 6,
             section = riskValuesSection
     )
-    default Color mediumRiskColor() { return new Color(0x99, 0xFF, 0x99, 0xFF); } // #FF99FF99
+    default Color mediumRiskColor() { return new Color(0x99, 0xFF, 0x99, 0xFF); }
 
     // High Risk
     @ConfigItem(
@@ -101,7 +100,7 @@ public interface PlayerRiskConfig extends Config {
             position = 9,
             section = riskValuesSection
     )
-    default Color highRiskColor() { return new Color(0xFF, 0x96, 0x00, 0xFF); } // #FFFF9600
+    default Color highRiskColor() { return new Color(0xFF, 0x96, 0x00, 0xFF); }
 
     // Insane Risk
     @ConfigItem(
@@ -130,7 +129,7 @@ public interface PlayerRiskConfig extends Config {
             position = 12,
             section = riskValuesSection
     )
-    default Color insaneRiskColor() { return new Color(0xFF, 0x62, 0xB2, 0xFF); } // #FFFF62B2
+    default Color insaneRiskColor() { return new Color(0xFF, 0x62, 0xB2, 0xFF); }
 
     // --- Display Settings ---
     @ConfigSection(
@@ -279,5 +278,54 @@ public interface PlayerRiskConfig extends Config {
         OverlayDisplayType(String displayName) { this.displayName = displayName; }
         @Override
         public String toString() { return displayName; }
+    }
+
+    // --- Risk Menu Settings ---
+    @ConfigSection(
+            name = "Risk Menu Settings",
+            description = "Configure when the Risk Check menu appears",
+            position = 0,
+            closedByDefault = false
+    )
+    String riskMenuSection = "riskMenuSection";
+
+    @ConfigItem(
+            keyName = "riskMenuMode",
+            name = "Risk Menu Mode",
+            description = "Choose when to show the Risk Check menu: Disabled, RightClick, Shift + RightClick",
+            position = 1,
+            section = riskMenuSection
+    )
+    default RiskMenuMode riskMenuMode() {
+        return RiskMenuMode.RIGHT_CLICK;
+    }
+
+    enum RiskMenuMode {
+        DISABLED,
+        RIGHT_CLICK,
+        SHIFT_RIGHT_CLICK
+    }
+
+    @Alpha
+    @ConfigItem(
+            keyName = "riskMenuColor",
+            name = "Risk Menu Color",
+            description = "Choose a color for the Risk Check menu option",
+            position = 2,
+            section = riskMenuSection
+    )
+    default Color riskMenuColor() {
+        return new Color(0xFF, 0xA5, 0x00, 0xFF);
+    }
+
+    @ConfigItem(
+            keyName = "highlightLocalPlayer",
+            name = "Highlight Own Player",
+            description = "Include your own (local) player in risk highlighting and overlay. (Default: not included)",
+            position = 3,
+            section = riskMenuSection
+    )
+    default boolean highlightLocalPlayer() {
+        return false;
     }
 }

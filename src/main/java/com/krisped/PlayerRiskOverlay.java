@@ -2,7 +2,6 @@ package com.krisped;
 
 import net.runelite.api.Client;
 import net.runelite.api.Player;
-import net.runelite.api.PlayerComposition;
 import net.runelite.api.Varbits;
 import net.runelite.api.WorldType;
 import net.runelite.api.kit.KitType;
@@ -54,6 +53,10 @@ public class PlayerRiskOverlay extends Overlay {
             if (player == null || player.getName() == null)
                 continue;
 
+            // Ekskluder local player med mindre enabled i config
+            if (player.equals(client.getLocalPlayer()) && !config.highlightLocalPlayer())
+                continue;
+
             // PvP-filtrering
             PlayerRiskConfig.PvPMode pvpMode = config.pvpMode();
             if (pvpMode != PlayerRiskConfig.PvPMode.OFF) {
@@ -75,7 +78,7 @@ public class PlayerRiskOverlay extends Overlay {
                 }
             }
 
-            // Bruker RiskCalculator for risikoberegning
+            // Beregn risiko
             int totalRisk = RiskCalculator.calculateRisk(player, itemManager);
             RiskCategory category = RiskCalculator.getRiskCategory(totalRisk, config);
             if (category == RiskCategory.NONE || !isCategoryEnabled(category))
@@ -190,7 +193,6 @@ public class PlayerRiskOverlay extends Overlay {
             return String.valueOf(value);
     }
 
-    // Risiko-kategorier slik at de kan brukes i RiskCalculator
     enum RiskCategory {
         NONE,
         LOW,
