@@ -6,7 +6,7 @@ import java.awt.Color;
 @ConfigGroup("playerRisk")
 public interface PlayerRiskConfig extends Config
 {
-    // --- Risk Values ---
+    // --- Risk Values (uendret) ---
     @ConfigSection(
             name = "Risk Values",
             description = "Configure risk categories: enable, GP threshold, and color.",
@@ -44,7 +44,6 @@ public interface PlayerRiskConfig extends Config
     )
     default Color lowRiskColor() { return new Color(0x66, 0xB2, 0xFF, 0xFF); }
 
-    // Medium Risk
     @ConfigItem(
             keyName = "enableMediumRisk",
             name = "Enable Medium Risk",
@@ -73,7 +72,6 @@ public interface PlayerRiskConfig extends Config
     )
     default Color mediumRiskColor() { return new Color(0x99, 0xFF, 0x99, 0xFF); }
 
-    // High Risk
     @ConfigItem(
             keyName = "enableHighRisk",
             name = "Enable High Risk",
@@ -102,7 +100,6 @@ public interface PlayerRiskConfig extends Config
     )
     default Color highRiskColor() { return new Color(0xFF, 0x96, 0x00, 0xFF); }
 
-    // Insane Risk
     @ConfigItem(
             keyName = "enableInsaneRisk",
             name = "Enable Insane Risk",
@@ -134,8 +131,8 @@ public interface PlayerRiskConfig extends Config
     // --- Highlight Options ---
     @ConfigSection(
             name = "Highlight Options",
-            description = "Configure risk highlighting: text, outline, tile, hull, minimap, etc.",
-            position = 13,
+            description = "Configure in-game highlighting: Risk Text, Hull, Outline, Tile, and Own Player.",
+            position = 1,
             closedByDefault = true
     )
     String highlightSection = "highlightSection";
@@ -159,19 +156,10 @@ public interface PlayerRiskConfig extends Config
     default int outlineThickness() { return 2; }
 
     @ConfigItem(
-            keyName = "minimapDisplayMode",
-            name = "Minimap Display Mode",
-            description = "Select how risk is displayed on the minimap.",
-            position = 3,
-            section = highlightSection
-    )
-    default MinimapDisplayMode minimapDisplayMode() { return MinimapDisplayMode.NONE; }
-
-    @ConfigItem(
             keyName = "enableTile",
             name = "Enable Tile",
             description = "Draw a tile overlay around the player.",
-            position = 4,
+            position = 3,
             section = highlightSection
     )
     default boolean enableTile() { return false; }
@@ -180,7 +168,7 @@ public interface PlayerRiskConfig extends Config
             keyName = "enableOutline",
             name = "Enable Outline",
             description = "Draw an outline around the player.",
-            position = 5,
+            position = 4,
             section = highlightSection
     )
     default boolean enableOutline() { return true; }
@@ -189,7 +177,7 @@ public interface PlayerRiskConfig extends Config
             keyName = "enableHull",
             name = "Enable Hull",
             description = "Draw the convex hull (ring) of the player's model.",
-            position = 6,
+            position = 5,
             section = highlightSection
     )
     default boolean enableHull() { return false; }
@@ -198,17 +186,26 @@ public interface PlayerRiskConfig extends Config
             keyName = "highlightLocalPlayer",
             name = "Highlight Own Player",
             description = "Include your own (local) player in risk highlighting and overlay.",
-            position = 7,
+            position = 6,
             section = highlightSection
     )
     default boolean highlightLocalPlayer() { return false; }
+
+    // --- Filter Options ---
+    @ConfigSection(
+            name = "Filter Options",
+            description = "Configure filters for which players to highlight.",
+            position = 2,
+            closedByDefault = true
+    )
+    String filterSection = "filterSection";
 
     @ConfigItem(
             keyName = "pvpMode",
             name = "PvP Mode",
             description = "Select which players to highlight:\n• OFF: All players\n• ON: Only players in PvP worlds/Wilderness\n• ATTACKABLE: Only players you can attack based on combat level",
-            position = 8,
-            section = highlightSection
+            position = 1,
+            section = filterSection
     )
     default PvPMode pvpMode() { return PvPMode.OFF; }
 
@@ -216,17 +213,26 @@ public interface PlayerRiskConfig extends Config
             keyName = "skullMode",
             name = "Skull Mode",
             description = "Velg hvilke spillere som skal highlighte: Unskulled, Skulled eller Both",
-            position = 9,
-            section = highlightSection
+            position = 2,
+            section = filterSection
     )
     default SkullMode skullMode() { return SkullMode.BOTH; }
+
+    // --- Overlay Options ---
+    @ConfigSection(
+            name = "Overlay Options",
+            description = "Configure overlay displays such as risk summary and minimap.",
+            position = 3,
+            closedByDefault = true
+    )
+    String overlaySection = "overlaySection";
 
     @ConfigItem(
             keyName = "showOverlay",
             name = "Show Risk Overlay",
             description = "Toggle the display of the risk summary overlay",
-            position = 10,
-            section = highlightSection
+            position = 1,
+            section = overlaySection
     )
     default boolean showOverlay() { return true; }
 
@@ -234,16 +240,25 @@ public interface PlayerRiskConfig extends Config
             keyName = "overlayDisplayType",
             name = "Overlay Display Type",
             description = "Select how the overlay displays risk:\n• Disabled: Do not display overlay\n• Risk Categories: Show category names (Low, Medium, High, Insane)\n• Risk Amounts: Show threshold amounts",
-            position = 11,
-            section = highlightSection
+            position = 2,
+            section = overlaySection
     )
     default OverlayDisplayType overlayDisplayType() { return OverlayDisplayType.RISK_CATEGORIES; }
+
+    @ConfigItem(
+            keyName = "minimapDisplayMode",
+            name = "Minimap Display Mode",
+            description = "Select how risk is displayed on the minimap.",
+            position = 3,
+            section = overlaySection
+    )
+    default MinimapDisplayMode minimapDisplayMode() { return MinimapDisplayMode.NONE; }
 
     // --- Combat Options ---
     @ConfigSection(
             name = "Combat Options",
             description = "Configure combat-related highlighting settings.",
-            position = 14,
+            position = 4,
             closedByDefault = true
     )
     String combatSection = "combatSection";
@@ -271,7 +286,7 @@ public interface PlayerRiskConfig extends Config
     @ConfigSection(
             name = "Risk Menu Options",
             description = "Configure when and how the Risk Check menu appears.",
-            position = 15,
+            position = 5,
             closedByDefault = true
     )
     String riskMenuSection = "riskMenuSection";
