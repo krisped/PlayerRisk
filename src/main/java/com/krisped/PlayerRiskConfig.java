@@ -4,8 +4,8 @@ import net.runelite.client.config.*;
 import java.awt.Color;
 
 @ConfigGroup("playerRisk")
-public interface PlayerRiskConfig extends Config {
-
+public interface PlayerRiskConfig extends Config
+{
     // --- Risk Values ---
     @ConfigSection(
             name = "Risk Values",
@@ -135,7 +135,7 @@ public interface PlayerRiskConfig extends Config {
     @ConfigSection(
             name = "Highlight Options",
             description = "Configure risk highlighting: text, outline, tile, hull, minimap, etc.",
-            position = 1,
+            position = 13,
             closedByDefault = true
     )
     String highlightSection = "highlightSection";
@@ -213,10 +213,19 @@ public interface PlayerRiskConfig extends Config {
     default PvPMode pvpMode() { return PvPMode.OFF; }
 
     @ConfigItem(
+            keyName = "skullMode",
+            name = "Skull Mode",
+            description = "Velg hvilke spillere som skal highlighte: Unskulled, Skulled eller Both",
+            position = 9,
+            section = highlightSection
+    )
+    default SkullMode skullMode() { return SkullMode.BOTH; }
+
+    @ConfigItem(
             keyName = "showOverlay",
             name = "Show Risk Overlay",
             description = "Toggle the display of the risk summary overlay",
-            position = 9,
+            position = 10,
             section = highlightSection
     )
     default boolean showOverlay() { return true; }
@@ -225,7 +234,7 @@ public interface PlayerRiskConfig extends Config {
             keyName = "overlayDisplayType",
             name = "Overlay Display Type",
             description = "Select how the overlay displays risk:\n• Disabled: Do not display overlay\n• Risk Categories: Show category names (Low, Medium, High, Insane)\n• Risk Amounts: Show threshold amounts",
-            position = 10,
+            position = 11,
             section = highlightSection
     )
     default OverlayDisplayType overlayDisplayType() { return OverlayDisplayType.RISK_CATEGORIES; }
@@ -234,7 +243,7 @@ public interface PlayerRiskConfig extends Config {
     @ConfigSection(
             name = "Combat Options",
             description = "Configure combat-related highlighting settings.",
-            position = 2,
+            position = 14,
             closedByDefault = true
     )
     String combatSection = "combatSection";
@@ -262,7 +271,7 @@ public interface PlayerRiskConfig extends Config {
     @ConfigSection(
             name = "Risk Menu Options",
             description = "Configure when and how the Risk Check menu appears.",
-            position = 3,
+            position = 15,
             closedByDefault = true
     )
     String riskMenuSection = "riskMenuSection";
@@ -287,49 +296,91 @@ public interface PlayerRiskConfig extends Config {
     default Color riskMenuColor() { return new Color(0xFF, 0xA5, 0x00, 0xFF); }
 
     // --- Enum Definitions ---
-    enum TextPosition {
+    enum TextPosition
+    {
         DISABLED("Disabled"),
         OVER("Over"),
         CENTER("Center"),
         UNDER("Under");
 
         private final String displayName;
-        TextPosition(String displayName) { this.displayName = displayName; }
+        TextPosition(String displayName)
+        {
+            this.displayName = displayName;
+        }
         @Override
-        public String toString() { return displayName; }
+        public String toString()
+        {
+            return displayName;
+        }
     }
 
-    enum PvPMode {
+    enum PvPMode
+    {
         OFF,
         ON,
         ATTACKABLE
     }
 
-    enum MinimapDisplayMode {
+    enum MinimapDisplayMode
+    {
         NONE("None"),
         DOT("Dot"),
         RISK("Risk");
 
         private final String displayName;
-        MinimapDisplayMode(String displayName) { this.displayName = displayName; }
+        MinimapDisplayMode(String displayName)
+        {
+            this.displayName = displayName;
+        }
         @Override
-        public String toString() { return displayName; }
+        public String toString()
+        {
+            return displayName;
+        }
     }
 
-    enum OverlayDisplayType {
+    enum OverlayDisplayType
+    {
         DISABLED("Disabled"),
         RISK_CATEGORIES("Risk Categories"),
         RISK_AMOUNTS("Risk Amounts");
 
         private final String displayName;
-        OverlayDisplayType(String displayName) { this.displayName = displayName; }
+        OverlayDisplayType(String displayName)
+        {
+            this.displayName = displayName;
+        }
         @Override
-        public String toString() { return displayName; }
+        public String toString()
+        {
+            return displayName;
+        }
     }
 
-    enum RiskMenuMode {
+    enum RiskMenuMode
+    {
         DISABLED,
         RIGHT_CLICK,
         SHIFT_RIGHT_CLICK
+    }
+
+    // Ny enum for Skull Mode
+    enum SkullMode
+    {
+        UNSKULLED("Unskulled"),
+        SKULLED("Skulled"),
+        BOTH("Both");
+
+        private final String displayName;
+        SkullMode(String displayName)
+        {
+            this.displayName = displayName;
+        }
+        @Override
+        public String toString()
+        {
+            return displayName;
+        }
     }
 }

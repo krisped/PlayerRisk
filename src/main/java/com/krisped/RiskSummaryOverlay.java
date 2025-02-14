@@ -172,6 +172,7 @@ public class RiskSummaryOverlay extends OverlayPanel {
             // Ekskluder local player med mindre enabled i config
             if (player.equals(client.getLocalPlayer()) && !config.highlightLocalPlayer())
                 continue;
+            // PvP-filtrering
             if (pvpMode != PlayerRiskConfig.PvPMode.OFF) {
                 boolean inPvPWorld = client.getWorldType().contains(WorldType.PVP);
                 boolean inWilderness = client.getVar(Varbits.IN_WILDERNESS) > 0;
@@ -190,6 +191,14 @@ public class RiskSummaryOverlay extends OverlayPanel {
                     }
                 }
             }
+            // Skull Mode filtering
+            PlayerRiskConfig.SkullMode skullMode = config.skullMode();
+            boolean isSkulled = player.getSkullIcon() != -1;
+            if (skullMode == PlayerRiskConfig.SkullMode.UNSKULLED && isSkulled)
+                continue;
+            else if (skullMode == PlayerRiskConfig.SkullMode.SKULLED && !isSkulled)
+                continue;
+
             WorldPoint playerLocation = player.getWorldLocation();
             int dx = Math.abs(playerLocation.getX() - localLocation.getX());
             int dy = Math.abs(playerLocation.getY() - localLocation.getY());

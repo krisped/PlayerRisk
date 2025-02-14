@@ -44,7 +44,7 @@ public class PlayerRiskOverlay extends Overlay {
 
     @Override
     public Dimension render(Graphics2D graphics) {
-        if (!enabled || config.disableHighlightInCombat() && combatManager.isInCombat()) {
+        if (!enabled || (config.disableHighlightInCombat() && combatManager.isInCombat())) {
             return null;
         }
 
@@ -76,6 +76,14 @@ public class PlayerRiskOverlay extends Overlay {
                     }
                 }
             }
+
+            // Skull Mode filtering
+            PlayerRiskConfig.SkullMode skullMode = config.skullMode();
+            boolean isSkulled = player.getSkullIcon() != -1;
+            if (skullMode == PlayerRiskConfig.SkullMode.UNSKULLED && isSkulled)
+                continue;
+            else if (skullMode == PlayerRiskConfig.SkullMode.SKULLED && !isSkulled)
+                continue;
 
             // Beregn risiko
             int totalRisk = RiskCalculator.calculateRisk(player, itemManager);
@@ -109,7 +117,7 @@ public class PlayerRiskOverlay extends Overlay {
                 }
             }
 
-            // Tegn risikotekst (bruker den oppdaterte metoden riskText())
+            // Tegn risikotekst
             if (config.riskText() != PlayerRiskConfig.TextPosition.DISABLED) {
                 drawRiskText(graphics, player, totalRisk, riskColor);
             }

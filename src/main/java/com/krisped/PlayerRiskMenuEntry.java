@@ -11,7 +11,6 @@ import net.runelite.api.KeyCode;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.menus.MenuManager;
-
 import javax.inject.Inject;
 import java.awt.Color;
 import java.text.NumberFormat;
@@ -46,10 +45,18 @@ public class PlayerRiskMenuEntry {
             return;
         }
 
-        // Hvis spilleren er local player og config ikke tillater at du inkluderer deg selv, avslutt
+        // Hvis spilleren er local player og config ikke tillater det, avslutt
         if (player.equals(client.getLocalPlayer()) && !config.highlightLocalPlayer()) {
             return;
         }
+
+        // Skull Mode filtering
+        PlayerRiskConfig.SkullMode skullMode = config.skullMode();
+        boolean isSkulled = player.getSkullIcon() != -1;
+        if (skullMode == PlayerRiskConfig.SkullMode.UNSKULLED && isSkulled)
+            return;
+        else if (skullMode == PlayerRiskConfig.SkullMode.SKULLED && !isSkulled)
+            return;
 
         // Hvis Risk Check er deaktivert i config, gjør ingenting
         if (config.riskMenuMode() == PlayerRiskConfig.RiskMenuMode.DISABLED) {
@@ -98,6 +105,14 @@ public class PlayerRiskMenuEntry {
         if (targetPlayer.equals(client.getLocalPlayer()) && !config.highlightLocalPlayer()) {
             return;
         }
+
+        // Skull Mode filtering for menyaksjonen
+        PlayerRiskConfig.SkullMode skullMode = config.skullMode();
+        boolean isSkulled = targetPlayer.getSkullIcon() != -1;
+        if (skullMode == PlayerRiskConfig.SkullMode.UNSKULLED && isSkulled)
+            return;
+        else if (skullMode == PlayerRiskConfig.SkullMode.SKULLED && !isSkulled)
+            return;
 
         int risk = RiskCalculator.calculateRisk(targetPlayer, itemManager);
         String formattedRisk = NumberFormat.getNumberInstance(Locale.US).format(risk);

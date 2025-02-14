@@ -79,6 +79,14 @@ public class PlayerRiskMinimapOverlay extends Overlay {
                 }
             }
 
+            // Skull Mode filtering
+            PlayerRiskConfig.SkullMode skullMode = config.skullMode();
+            boolean isSkulled = player.getSkullIcon() != -1;
+            if (skullMode == PlayerRiskConfig.SkullMode.UNSKULLED && isSkulled)
+                continue;
+            else if (skullMode == PlayerRiskConfig.SkullMode.SKULLED && !isSkulled)
+                continue;
+
             // Beregn risiko
             int totalRisk = RiskCalculator.calculateRisk(player, itemManager);
             PlayerRiskOverlay.RiskCategory category = RiskCalculator.getRiskCategory(totalRisk, config);
