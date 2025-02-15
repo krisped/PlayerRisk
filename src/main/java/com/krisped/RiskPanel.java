@@ -1,7 +1,10 @@
 package com.krisped;
 
+import net.runelite.api.Client;
+import net.runelite.api.Player;
 import net.runelite.api.kit.KitType;
 import net.runelite.api.ItemComposition;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.ui.FontManager;
@@ -13,6 +16,7 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class RiskPanel extends PluginPanel
@@ -22,24 +26,31 @@ public class RiskPanel extends PluginPanel
     private JPanel header;
     public JLabel nameLabel;
     private final ItemManager itemManager;
+    private final Client client; // Brukes for å hente local player
+    private final ClientThread clientThread; // For å kjøre kode på klienttråden
+    private JButton checkOwnRiskButton; // Knapp for å sjekke eget risk
 
-    public RiskPanel(ItemManager itemManager)
+    /**
+     * Konstruktør som tar imot Client, ClientThread og ItemManager.
+     */
+    public RiskPanel(Client client, ClientThread clientThread, ItemManager itemManager)
     {
         this.itemManager = itemManager;
+        this.client = client;
+        this.clientThread = clientThread;
 
-        // Bruk GroupLayout for hovedpanelet
+        // Oppsett av layout med GroupLayout
         GroupLayout layout = new GroupLayout(this);
         setLayout(layout);
         setBorder(new EmptyBorder(10, 10, 10, 10));
-        // Transparent bakgrunn
         setBackground(new Color(0, 0, 0, 0));
         setOpaque(false);
 
-        // Equipment-panelet med GridBagLayout
+        // Panelet for utstyrsinfo med GridBagLayout
         equipmentPanels = new JPanel(new GridBagLayout());
         equipmentPanels.setOpaque(false);
 
-        // Headerpanelet med spillernavn
+        // Header-panelet med spillernavn
         header = new JPanel(new BorderLayout());
         header.setBorder(new EmptyBorder(0, 0, 10, 0));
         header.setOpaque(false);
@@ -48,23 +59,31 @@ public class RiskPanel extends PluginPanel
         nameLabel.setForeground(Color.WHITE);
         nameLabel.setFont(FontManager.getRunescapeFont());
         nameLabel.setOpaque(false);
-
         header.add(nameLabel, BorderLayout.CENTER);
 
+        // Opprett knappen "Check your own risk"
+        checkOwnRiskButton = new JButton("Check your own risk");
+        checkOwnRiskButton.setFont(FontManager.getRunescapeFont());
+        checkOwnRiskButton.addActionListener(e -> checkOwnRisk());
+
+        // Sett opp layout med header, equipmentPanels og knappen
         layout.setHorizontalGroup(
                 layout.createParallelGroup()
                         .addComponent(header)
                         .addComponent(equipmentPanels)
+                        .addComponent(checkOwnRiskButton)
         );
         layout.setVerticalGroup(
                 layout.createSequentialGroup()
                         .addComponent(header)
                         .addGap(10)
                         .addComponent(equipmentPanels)
+                        .addGap(10)
+                        .addComponent(checkOwnRiskButton)
         );
 
         // Start med et tomt oppsett
-        updateEquipment(new java.util.HashMap<>(), new java.util.HashMap<>(), "");
+        updateEquipment(new HashMap<>(), new HashMap<>(), "");
     }
 
     /**
@@ -141,7 +160,7 @@ public class RiskPanel extends PluginPanel
         name.setForeground(Color.WHITE);
         name.setOpaque(false);
 
-        // Formatér kit-typen med stor forbokstav
+        // Formater kit-typen med stor forbokstav
         String kitName = StringUtils.capitalize(kit.toString().toLowerCase());
         JLabel slot = new JLabel(kitName);
         slot.setFont(FontManager.getRunescapeSmallFont());
@@ -214,5 +233,44 @@ public class RiskPanel extends PluginPanel
         panel.add(label);
         panel.add(totalLabel);
         return panel;
+    }
+
+    /**
+     * Henter ut utstyr for local player og oppdaterer panelet.
+     * Koden som kaller client.getItemDefinition kjøres nå på klienttråden.
+     */
+    private void checkOwnRisk()
+    {
+        Player local = client.getLocalPlayer();
+        if (local == null || local.getPlayerComposition() == null)
+        {
+            JOptionPane.showMessageDialog(this, "Local player data is unavailable.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Kjører koden på klienttråden
+        clientThread.invokeLater(() -> {
+            Map<KitType, ItemComposition> equipment = new HashMap<>();
+            Map<KitType, Integer> equipmentRisks = new HashMap<>();
+
+            for (KitType kit : KitType.values())
+            {
+                int itemId = local.getPlayerComposition().getEquipmentId(kit);
+                if (itemId > 0)
+                {
+                    // Nå kalles denne metoden på klienttråden
+                    ItemComposition comp = client.getItemDefinition(itemId);
+                    if (comp != null)
+                    {
+                        equipment.put(kit, comp);
+                        equipmentRisks.put(kit, itemManager.getItemPrice(itemId));
+                    }
+                }
+            }
+            // Oppdaterer UI-en på Swing-tråden
+            SwingUtilities.invokeLater(() -> {
+                updateEquipment(equipment, equipmentRisks, local.getName());
+            });
+        });
     }
 }

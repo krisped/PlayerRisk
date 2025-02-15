@@ -4,6 +4,7 @@ import com.google.inject.Provides;
 import java.awt.image.BufferedImage;
 import javax.inject.Inject;
 import net.runelite.api.Client;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.menus.MenuManager;
@@ -55,6 +56,9 @@ public class PlayerRiskPlugin extends Plugin {
     @Inject
     private ClientToolbar clientToolbar;
 
+    @Inject
+    private ClientThread clientThread; // Nytt felt for å sende til RiskPanel
+
     // Opprett RiskPanel-instans og lagre i en statisk variabel
     private static RiskPanel riskPanel;
     private static NavigationButton riskNavigationButton;
@@ -67,8 +71,8 @@ public class PlayerRiskPlugin extends Plugin {
 
         eventBus.register(playerRiskMenuEntry);
 
-        // Opprett RiskPanel med itemManager
-        riskPanel = new RiskPanel(itemManager);
+        // Opprett RiskPanel med Client, ClientThread og ItemManager
+        riskPanel = new RiskPanel(client, clientThread, itemManager);
         BufferedImage icon = ImageUtil.loadImageResource(getClass(), "/Coins_10000.png");
         riskNavigationButton = NavigationButton.builder()
                 .tooltip("Risk Panel")
