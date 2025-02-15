@@ -6,7 +6,7 @@ import java.awt.Color;
 @ConfigGroup("playerRisk")
 public interface PlayerRiskConfig extends Config
 {
-    // --- Risk Values (uendret med nye minimumsgrenser) ---
+    // --- Risk Values (med nye minimumsgrenser) ---
     @ConfigSection(
             name = "Risk Values",
             description = "Configure risk categories: enable, GP threshold, and color.",

@@ -76,7 +76,7 @@ public class PlayerRiskOverlay extends Overlay {
                 }
             }
 
-            // Skull Mode-filtrering: Bruk kun dersom PvP Mode ikke er DISABLED
+            // Skull Mode-filtrering: Bruk kun dersom PvP Mode er aktiv (ON eller ATTACKABLE)
             if (config.pvpMode() != PlayerRiskConfig.PvPMode.DISABLED) {
                 PlayerRiskConfig.SkullMode skullMode = config.skullMode();
                 boolean isSkulled = player.getSkullIcon() != -1;
@@ -202,6 +202,10 @@ public class PlayerRiskOverlay extends Overlay {
             return String.format("%dK", value / 1_000);
         else
             return String.valueOf(value);
+    }
+
+    private String toHex(Color color) {
+        return String.format("%02X%02X%02X", color.getRed(), color.getGreen(), color.getBlue());
     }
 
     enum RiskCategory {
