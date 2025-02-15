@@ -6,7 +6,7 @@ import java.awt.Color;
 @ConfigGroup("playerRisk")
 public interface PlayerRiskConfig extends Config
 {
-    // --- Risk Values (uendret) ---
+    // --- Risk Values (uendret med nye minimumsgrenser) ---
     @ConfigSection(
             name = "Risk Values",
             description = "Configure risk categories: enable, GP threshold, and color.",
@@ -53,10 +53,11 @@ public interface PlayerRiskConfig extends Config
     )
     default boolean enableMediumRisk() { return false; }
 
+    @Range(min = 50000)
     @ConfigItem(
             keyName = "mediumRiskGP",
             name = "Medium Risk GP",
-            description = "Minimum GP value for a player to be considered medium risk.",
+            description = "Minimum GP value for a player to be considered medium risk (cannot be lower than 50,000).",
             position = 5,
             section = riskValuesSection
     )
@@ -81,10 +82,11 @@ public interface PlayerRiskConfig extends Config
     )
     default boolean enableHighRisk() { return false; }
 
+    @Range(min = 100000)
     @ConfigItem(
             keyName = "highRiskGP",
             name = "High Risk GP",
-            description = "Minimum GP value for a player to be considered high risk.",
+            description = "Minimum GP value for a player to be considered high risk (cannot be lower than 100,000).",
             position = 8,
             section = riskValuesSection
     )
@@ -109,10 +111,11 @@ public interface PlayerRiskConfig extends Config
     )
     default boolean enableInsaneRisk() { return false; }
 
+    @Range(min = 1000000)
     @ConfigItem(
             keyName = "insaneRiskGP",
             name = "Insane Risk GP",
-            description = "Minimum GP value for a player to be considered insane risk.",
+            description = "Minimum GP value for a player to be considered insane risk (cannot be lower than 1,000,000).",
             position = 11,
             section = riskValuesSection
     )
@@ -131,7 +134,7 @@ public interface PlayerRiskConfig extends Config
     // --- Highlight Options ---
     @ConfigSection(
             name = "Highlight Options",
-            description = "Configure in-game highlighting: Risk Text, Hull, Outline, Tile, and Own Player.",
+            description = "Configure in-game highlighting: Risk Text, Show Playernames, Hull, Outline, Tile, Own Player, and Minimap Display Mode.",
             position = 1,
             closedByDefault = true
     )
@@ -147,10 +150,19 @@ public interface PlayerRiskConfig extends Config
     default TextPosition riskText() { return TextPosition.OVER; }
 
     @ConfigItem(
+            keyName = "showPlayernames",
+            name = "Show Playernames",
+            description = "Display the player's name before the risk text.",
+            position = 2,
+            section = highlightSection
+    )
+    default boolean showPlayernames() { return false; }
+
+    @ConfigItem(
             keyName = "outlineThickness",
             name = "Outline Thickness",
             description = "Thickness of the outline drawn around players.",
-            position = 2,
+            position = 3,
             section = highlightSection
     )
     default int outlineThickness() { return 2; }
@@ -159,7 +171,7 @@ public interface PlayerRiskConfig extends Config
             keyName = "enableTile",
             name = "Enable Tile",
             description = "Draw a tile overlay around the player.",
-            position = 3,
+            position = 4,
             section = highlightSection
     )
     default boolean enableTile() { return false; }
@@ -168,7 +180,7 @@ public interface PlayerRiskConfig extends Config
             keyName = "enableOutline",
             name = "Enable Outline",
             description = "Draw an outline around the player.",
-            position = 4,
+            position = 5,
             section = highlightSection
     )
     default boolean enableOutline() { return true; }
@@ -177,7 +189,7 @@ public interface PlayerRiskConfig extends Config
             keyName = "enableHull",
             name = "Enable Hull",
             description = "Draw the convex hull (ring) of the player's model.",
-            position = 5,
+            position = 6,
             section = highlightSection
     )
     default boolean enableHull() { return false; }
@@ -186,10 +198,19 @@ public interface PlayerRiskConfig extends Config
             keyName = "highlightLocalPlayer",
             name = "Highlight Own Player",
             description = "Include your own (local) player in risk highlighting and overlay.",
-            position = 6,
+            position = 7,
             section = highlightSection
     )
     default boolean highlightLocalPlayer() { return false; }
+
+    @ConfigItem(
+            keyName = "minimapDisplayMode",
+            name = "Minimap Display Mode",
+            description = "Select how risk is displayed on the minimap.",
+            position = 8,
+            section = highlightSection
+    )
+    default MinimapDisplayMode minimapDisplayMode() { return MinimapDisplayMode.NONE; }
 
     // --- Filter Options ---
     @ConfigSection(
@@ -203,25 +224,25 @@ public interface PlayerRiskConfig extends Config
     @ConfigItem(
             keyName = "pvpMode",
             name = "PvP Mode",
-            description = "Select which players to highlight:\n• OFF: All players\n• ON: Only players in PvP worlds/Wilderness\n• ATTACKABLE: Only players you can attack based on combat level",
+            description = "Select which players to highlight:\n• DISABLED: All players\n• ON: Only players in PvP worlds/Wilderness\n• ATTACKABLE: Only players you can attack based on combat level",
             position = 1,
             section = filterSection
     )
-    default PvPMode pvpMode() { return PvPMode.OFF; }
+    default PvPMode pvpMode() { return PvPMode.DISABLED; }
 
     @ConfigItem(
             keyName = "skullMode",
             name = "Skull Mode",
-            description = "Velg hvilke spillere som skal highlighte: Unskulled, Skulled eller Both",
+            description = "Choose which players to highlight based on skull status: Unskulled, Skulled or All. (Only active if PvP Mode is ON or ATTACKABLE.)",
             position = 2,
             section = filterSection
     )
-    default SkullMode skullMode() { return SkullMode.BOTH; }
+    default SkullMode skullMode() { return SkullMode.ALL; }
 
     // --- Overlay Options ---
     @ConfigSection(
             name = "Overlay Options",
-            description = "Configure overlay displays such as risk summary and minimap.",
+            description = "Configure overlay displays such as risk summary.",
             position = 3,
             closedByDefault = true
     )
@@ -230,7 +251,7 @@ public interface PlayerRiskConfig extends Config
     @ConfigItem(
             keyName = "showOverlay",
             name = "Show Risk Overlay",
-            description = "Toggle the display of the risk summary overlay",
+            description = "Toggle the display of the risk summary overlay.",
             position = 1,
             section = overlaySection
     )
@@ -244,15 +265,6 @@ public interface PlayerRiskConfig extends Config
             section = overlaySection
     )
     default OverlayDisplayType overlayDisplayType() { return OverlayDisplayType.RISK_CATEGORIES; }
-
-    @ConfigItem(
-            keyName = "minimapDisplayMode",
-            name = "Minimap Display Mode",
-            description = "Select how risk is displayed on the minimap.",
-            position = 3,
-            section = overlaySection
-    )
-    default MinimapDisplayMode minimapDisplayMode() { return MinimapDisplayMode.NONE; }
 
     // --- Combat Options ---
     @ConfigSection(
@@ -313,7 +325,7 @@ public interface PlayerRiskConfig extends Config
     @ConfigItem(
             keyName = "riskMenuAction",
             name = "Risk Menu Action",
-            description = "Velg hva som skjer når du klikker Risk Check: Chat, Side Panel, Both.",
+            description = "Choose what happens when you click Risk Check: Chat, Side Panel, or All.",
             position = 3,
             section = riskMenuSection
     )
@@ -341,7 +353,7 @@ public interface PlayerRiskConfig extends Config
 
     enum PvPMode
     {
-        OFF,
+        DISABLED,
         ON,
         ATTACKABLE
     }
@@ -389,12 +401,11 @@ public interface PlayerRiskConfig extends Config
         SHIFT_RIGHT_CLICK
     }
 
-    // Ny enum for Skull Mode
     enum SkullMode
     {
         UNSKULLED("Unskulled"),
         SKULLED("Skulled"),
-        BOTH("Both");
+        ALL("All");
 
         private final String displayName;
         SkullMode(String displayName)
@@ -408,12 +419,11 @@ public interface PlayerRiskConfig extends Config
         }
     }
 
-    // Ny enum for Risk Menu Action
     enum RiskMenuAction
     {
         CHAT("Chat"),
         SIDE_PANEL("Side Panel"),
-        BOTH("Both");
+        ALL("All");
 
         private final String displayName;
         RiskMenuAction(String displayName)

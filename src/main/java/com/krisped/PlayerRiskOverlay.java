@@ -57,7 +57,7 @@ public class PlayerRiskOverlay extends Overlay {
 
             // PvP-filtrering
             PlayerRiskConfig.PvPMode pvpMode = config.pvpMode();
-            if (pvpMode != PlayerRiskConfig.PvPMode.OFF) {
+            if (pvpMode != PlayerRiskConfig.PvPMode.DISABLED) {
                 boolean inPvPWorld = client.getWorldType().contains(WorldType.PVP);
                 boolean inWilderness = client.getVar(Varbits.IN_WILDERNESS) > 0;
                 if (!inPvPWorld && !inWilderness)
@@ -76,13 +76,15 @@ public class PlayerRiskOverlay extends Overlay {
                 }
             }
 
-            // Skull Mode-filtrering
-            PlayerRiskConfig.SkullMode skullMode = config.skullMode();
-            boolean isSkulled = player.getSkullIcon() != -1;
-            if (skullMode == PlayerRiskConfig.SkullMode.UNSKULLED && isSkulled)
-                continue;
-            else if (skullMode == PlayerRiskConfig.SkullMode.SKULLED && !isSkulled)
-                continue;
+            // Skull Mode-filtrering: Bruk kun dersom PvP Mode ikke er DISABLED
+            if (config.pvpMode() != PlayerRiskConfig.PvPMode.DISABLED) {
+                PlayerRiskConfig.SkullMode skullMode = config.skullMode();
+                boolean isSkulled = player.getSkullIcon() != -1;
+                if (skullMode == PlayerRiskConfig.SkullMode.UNSKULLED && isSkulled)
+                    continue;
+                else if (skullMode == PlayerRiskConfig.SkullMode.SKULLED && !isSkulled)
+                    continue;
+            }
 
             // Beregn risiko (bruk long for å unngå overflow)
             long totalRisk = RiskCalculator.calculateRisk(player, itemManager);
@@ -116,7 +118,7 @@ public class PlayerRiskOverlay extends Overlay {
                 }
             }
 
-            // Tegn risikotekst
+            // Tegn risikotekst med spillernavn hvis "Show Playernames" er aktivert.
             if (config.riskText() != PlayerRiskConfig.TextPosition.DISABLED) {
                 drawRiskText(graphics, player, totalRisk, riskColor);
             }
@@ -138,6 +140,9 @@ public class PlayerRiskOverlay extends Overlay {
 
     private void drawRiskText(Graphics2D graphics, Player player, long totalRisk, Color riskColor) {
         String riskText = formatRiskValue(totalRisk);
+        if (config.showPlayernames()) {
+            riskText = player.getName() + ": " + riskText;
+        }
         FontMetrics metrics = graphics.getFontMetrics();
         int textWidth = metrics.stringWidth(riskText);
         int baseline = 0;

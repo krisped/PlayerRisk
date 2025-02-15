@@ -79,7 +79,7 @@ public class PlayerRiskMenuEntry {
         }
 
         Color menuColor = config.riskMenuColor();
-        String colorHex = toHex(menuColor);
+        String colorHex = String.format("%02X%02X%02X", menuColor.getRed(), menuColor.getGreen(), menuColor.getBlue());
 
         client.createMenuEntry(-1)
                 .setOption("<col=" + colorHex + ">" + INSPECT_RISK + "</col>")
@@ -115,12 +115,12 @@ public class PlayerRiskMenuEntry {
 
         PlayerRiskConfig.RiskMenuAction action = config.riskMenuAction();
 
-        if (action == PlayerRiskConfig.RiskMenuAction.CHAT || action == PlayerRiskConfig.RiskMenuAction.BOTH) {
+        if (action == PlayerRiskConfig.RiskMenuAction.CHAT || action == PlayerRiskConfig.RiskMenuAction.ALL) {
             String message = "<col=483D8B>Player " + targetPlayer.getName() + " is risking " + formattedRisk + " GP.</col>";
             client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", message, null);
         }
 
-        if (action == PlayerRiskConfig.RiskMenuAction.SIDE_PANEL || action == PlayerRiskConfig.RiskMenuAction.BOTH) {
+        if (action == PlayerRiskConfig.RiskMenuAction.SIDE_PANEL || action == PlayerRiskConfig.RiskMenuAction.ALL) {
             Map<net.runelite.api.kit.KitType, net.runelite.api.ItemComposition> equipment = new HashMap<>();
             Map<net.runelite.api.kit.KitType, Integer> equipmentPrices = new HashMap<>();
             if (targetPlayer.getPlayerComposition() != null) {
@@ -133,15 +133,10 @@ public class PlayerRiskMenuEntry {
                     }
                 }
             }
-            // Tving opp sidepanelet ved å åpne navigasjonsknappen og oppdatere panelet
             SwingUtilities.invokeLater(() -> {
                 clientToolbar.openPanel(PlayerRiskPlugin.getRiskNavigationButton());
                 PlayerRiskPlugin.getRiskPanel().updateEquipment(equipment, equipmentPrices, targetPlayer.getName());
             });
         }
-    }
-
-    private String toHex(Color color) {
-        return String.format("%02X%02X%02X", color.getRed(), color.getGreen(), color.getBlue());
     }
 }

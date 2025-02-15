@@ -1,5 +1,7 @@
 package com.krisped;
 
+import java.awt.Dimension;
+import java.awt.Graphics2D;
 import net.runelite.api.Client;
 import net.runelite.api.Player;
 import net.runelite.api.Varbits;
@@ -11,8 +13,6 @@ import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.components.TitleComponent;
 import net.runelite.client.ui.overlay.components.LineComponent;
 import javax.inject.Inject;
-import java.awt.Dimension;
-import java.awt.Graphics2D;
 import java.awt.Color;
 import java.util.EnumMap;
 import java.util.Map;
@@ -22,7 +22,6 @@ public class RiskSummaryOverlay extends OverlayPanel {
     private final ItemManager itemManager;
     private final PlayerRiskConfig config;
     private final CombatManager combatManager;
-    private static final int DISTANCE_THRESHOLD = 50;
 
     @Inject
     public RiskSummaryOverlay(Client client, ItemManager itemManager, PlayerRiskConfig config, CombatManager combatManager) {
@@ -56,8 +55,8 @@ public class RiskSummaryOverlay extends OverlayPanel {
         // Vis PvP Mode-linje
         String pvpStatus;
         switch(config.pvpMode()) {
-            case OFF:
-                pvpStatus = "Off";
+            case DISABLED:
+                pvpStatus = "Disabled";
                 break;
             case ON:
                 pvpStatus = "On";
@@ -75,18 +74,27 @@ public class RiskSummaryOverlay extends OverlayPanel {
                 .build();
         panelComponent.getChildren().add(pvpLine);
 
-        // Hvis i PvP-modus og ikke i et PvP-område, vis advarsel
+        // Når PvP Mode er ON eller ATTACKABLE, sjekk om spilleren er i en PvP-verden/område.
         if (config.pvpMode() == PlayerRiskConfig.PvPMode.ON ||
-                config.pvpMode() == PlayerRiskConfig.PvPMode.ATTACKABLE) {
+                config.pvpMode() == PlayerRiskConfig.PvPMode.ATTACKABLE)
+        {
             boolean inPvPWorld = client.getWorldType().contains(WorldType.PVP);
             boolean inWilderness = client.getVar(Varbits.IN_WILDERNESS) > 0;
             if (!inPvPWorld && !inWilderness) {
+                // Vis advarsel i rød tekst og avslutt rendering av oversikten
                 LineComponent warning = LineComponent.builder()
-                        .left("<col=FF0000>Not in PvP world")
+                        .left("<col=FF0000>Not in PvP World")
                         .build();
                 panelComponent.getChildren().add(warning);
                 return super.render(graphics);
             }
+            // Vis Skull Mode-linjen kun når PvP Mode er aktiv (ON eller ATTACKABLE)
+            String skullStatus = config.skullMode().toString();
+            LineComponent skullLine = LineComponent.builder()
+                    .left("PvP Skull:")
+                    .right(skullStatus)
+                    .build();
+            panelComponent.getChildren().add(skullLine);
         }
 
         // Overskrift for risikotabellen
@@ -171,7 +179,8 @@ public class RiskSummaryOverlay extends OverlayPanel {
                 continue;
             if (player.equals(client.getLocalPlayer()) && !config.highlightLocalPlayer())
                 continue;
-            if (pvpMode != PlayerRiskConfig.PvPMode.OFF) {
+            // Kun filtrer på PvP-verden/område hvis PvP Mode er ON eller ATTACKABLE
+            if (pvpMode != PlayerRiskConfig.PvPMode.DISABLED) {
                 boolean inPvPWorld = client.getWorldType().contains(WorldType.PVP);
                 boolean inWilderness = client.getVar(Varbits.IN_WILDERNESS) > 0;
                 if (!inPvPWorld && !inWilderness)
@@ -189,13 +198,15 @@ public class RiskSummaryOverlay extends OverlayPanel {
                     }
                 }
             }
+            // Hvis PvP Mode er DISABLED, ignorer skull filter; ellers, filtrer basert på skull-status.
             PlayerRiskConfig.SkullMode skullMode = config.skullMode();
             boolean isSkulled = player.getSkullIcon() != -1;
-            if (skullMode == PlayerRiskConfig.SkullMode.UNSKULLED && isSkulled)
-                continue;
-            else if (skullMode == PlayerRiskConfig.SkullMode.SKULLED && !isSkulled)
-                continue;
-
+            if (pvpMode != PlayerRiskConfig.PvPMode.DISABLED) {
+                if (skullMode == PlayerRiskConfig.SkullMode.UNSKULLED && isSkulled)
+                    continue;
+                else if (skullMode == PlayerRiskConfig.SkullMode.SKULLED && !isSkulled)
+                    continue;
+            }
             long risk = RiskCalculator.calculateRisk(player, itemManager);
             PlayerRiskOverlay.RiskCategory category = RiskCalculator.getRiskCategory(risk, config);
             if (category != PlayerRiskOverlay.RiskCategory.NONE)

@@ -60,7 +60,7 @@ public class PlayerRiskMinimapOverlay extends Overlay {
                 continue;
             // PvP-filtrering
             PlayerRiskConfig.PvPMode pvpMode = config.pvpMode();
-            if (pvpMode != PlayerRiskConfig.PvPMode.OFF) {
+            if (pvpMode != PlayerRiskConfig.PvPMode.DISABLED) {
                 boolean inPvPWorld = client.getWorldType().contains(WorldType.PVP);
                 boolean inWilderness = client.getVar(Varbits.IN_WILDERNESS) > 0;
                 if (!inPvPWorld && !inWilderness)
