@@ -310,6 +310,15 @@ public interface PlayerRiskConfig extends Config
     )
     default Color riskMenuColor() { return new Color(0xFF, 0xA5, 0x00, 0xFF); }
 
+    @ConfigItem(
+            keyName = "riskMenuAction",
+            name = "Risk Menu Action",
+            description = "Velg hva som skjer når du klikker Risk Check: Chat, Side Panel, Both.",
+            position = 3,
+            section = riskMenuSection
+    )
+    default RiskMenuAction riskMenuAction() { return RiskMenuAction.CHAT; }
+
     // --- Enum Definitions ---
     enum TextPosition
     {
@@ -389,6 +398,25 @@ public interface PlayerRiskConfig extends Config
 
         private final String displayName;
         SkullMode(String displayName)
+        {
+            this.displayName = displayName;
+        }
+        @Override
+        public String toString()
+        {
+            return displayName;
+        }
+    }
+
+    // Ny enum for Risk Menu Action
+    enum RiskMenuAction
+    {
+        CHAT("Chat"),
+        SIDE_PANEL("Side Panel"),
+        BOTH("Both");
+
+        private final String displayName;
+        RiskMenuAction(String displayName)
         {
             this.displayName = displayName;
         }

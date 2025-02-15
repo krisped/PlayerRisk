@@ -1,6 +1,7 @@
 package com.krisped;
 
 import com.google.inject.Provides;
+import java.awt.image.BufferedImage;
 import javax.inject.Inject;
 import net.runelite.api.Client;
 import net.runelite.client.config.ConfigManager;
@@ -10,6 +11,9 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.ui.overlay.OverlayManager;
+import net.runelite.client.ui.NavigationButton;
+import net.runelite.client.ui.ClientToolbar;
+import net.runelite.client.util.ImageUtil;
 
 @PluginDescriptor(
         name = "[KP] Player Risk Highlighter",
@@ -48,6 +52,13 @@ public class PlayerRiskPlugin extends Plugin {
     @Inject
     private PlayerRiskMenuEntry playerRiskMenuEntry;
 
+    @Inject
+    private ClientToolbar clientToolbar;
+
+    // Opprett RiskPanel-instans og lagre i en statisk variabel
+    private static RiskPanel riskPanel;
+    private static NavigationButton riskNavigationButton;
+
     @Override
     protected void startUp() throws Exception {
         overlayManager.add(playerRiskOverlay);
@@ -55,6 +66,17 @@ public class PlayerRiskPlugin extends Plugin {
         overlayManager.add(riskSummaryOverlay);
 
         eventBus.register(playerRiskMenuEntry);
+
+        // Opprett RiskPanel med itemManager
+        riskPanel = new RiskPanel(itemManager);
+        BufferedImage icon = ImageUtil.loadImageResource(getClass(), "/Coins_10000.png");
+        riskNavigationButton = NavigationButton.builder()
+                .tooltip("Risk Panel")
+                .icon(icon)
+                .priority(1)
+                .panel(riskPanel)
+                .build();
+        clientToolbar.addNavigation(riskNavigationButton);
     }
 
     @Override
@@ -64,10 +86,24 @@ public class PlayerRiskPlugin extends Plugin {
         overlayManager.remove(riskSummaryOverlay);
 
         eventBus.unregister(playerRiskMenuEntry);
+
+        if (riskNavigationButton != null) {
+            clientToolbar.removeNavigation(riskNavigationButton);
+        }
     }
 
     @Provides
     PlayerRiskConfig provideConfig(ConfigManager configManager) {
         return configManager.getConfig(PlayerRiskConfig.class);
+    }
+
+    // Statisk getter for RiskPanel-instansen
+    public static RiskPanel getRiskPanel() {
+        return riskPanel;
+    }
+
+    // Statisk getter for navigasjonsknappen
+    public static NavigationButton getRiskNavigationButton() {
+        return riskNavigationButton;
     }
 }

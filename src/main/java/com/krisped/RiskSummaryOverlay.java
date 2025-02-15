@@ -1,10 +1,5 @@
 package com.krisped;
 
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics2D;
-import java.util.EnumMap;
-import java.util.Map;
 import net.runelite.api.Client;
 import net.runelite.api.Player;
 import net.runelite.api.Varbits;
@@ -16,6 +11,11 @@ import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.components.TitleComponent;
 import net.runelite.client.ui.overlay.components.LineComponent;
 import javax.inject.Inject;
+import java.awt.Dimension;
+import java.awt.Graphics2D;
+import java.awt.Color;
+import java.util.EnumMap;
+import java.util.Map;
 
 public class RiskSummaryOverlay extends OverlayPanel {
     private final Client client;
@@ -169,10 +169,8 @@ public class RiskSummaryOverlay extends OverlayPanel {
         for (Player player : client.getPlayers()) {
             if (player == null || player.getName() == null)
                 continue;
-            // Ekskluder local player med mindre enabled i config
             if (player.equals(client.getLocalPlayer()) && !config.highlightLocalPlayer())
                 continue;
-            // PvP-filtrering
             if (pvpMode != PlayerRiskConfig.PvPMode.OFF) {
                 boolean inPvPWorld = client.getWorldType().contains(WorldType.PVP);
                 boolean inWilderness = client.getVar(Varbits.IN_WILDERNESS) > 0;
@@ -191,7 +189,6 @@ public class RiskSummaryOverlay extends OverlayPanel {
                     }
                 }
             }
-            // Skull Mode filtering
             PlayerRiskConfig.SkullMode skullMode = config.skullMode();
             boolean isSkulled = player.getSkullIcon() != -1;
             if (skullMode == PlayerRiskConfig.SkullMode.UNSKULLED && isSkulled)
@@ -199,13 +196,7 @@ public class RiskSummaryOverlay extends OverlayPanel {
             else if (skullMode == PlayerRiskConfig.SkullMode.SKULLED && !isSkulled)
                 continue;
 
-            WorldPoint playerLocation = player.getWorldLocation();
-            int dx = Math.abs(playerLocation.getX() - localLocation.getX());
-            int dy = Math.abs(playerLocation.getY() - localLocation.getY());
-            int distance = Math.max(dx, dy);
-            if (distance > DISTANCE_THRESHOLD)
-                continue;
-            int risk = RiskCalculator.calculateRisk(player, itemManager);
+            long risk = RiskCalculator.calculateRisk(player, itemManager);
             PlayerRiskOverlay.RiskCategory category = RiskCalculator.getRiskCategory(risk, config);
             if (category != PlayerRiskOverlay.RiskCategory.NONE)
                 counts.put(category, counts.get(category) + 1);
@@ -213,7 +204,7 @@ public class RiskSummaryOverlay extends OverlayPanel {
         return counts;
     }
 
-    private String formatRiskValue(int value) {
+    private String formatRiskValue(long value) {
         if (value >= 1_000_000)
             return String.format("%.1fM", value / 1_000_000.0);
         else if (value >= 1_000)

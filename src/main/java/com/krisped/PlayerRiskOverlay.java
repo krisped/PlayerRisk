@@ -52,7 +52,6 @@ public class PlayerRiskOverlay extends Overlay {
             if (player == null || player.getName() == null)
                 continue;
 
-            // Ekskluder local player med mindre enabled i config
             if (player.equals(client.getLocalPlayer()) && !config.highlightLocalPlayer())
                 continue;
 
@@ -77,7 +76,7 @@ public class PlayerRiskOverlay extends Overlay {
                 }
             }
 
-            // Skull Mode filtering
+            // Skull Mode-filtrering
             PlayerRiskConfig.SkullMode skullMode = config.skullMode();
             boolean isSkulled = player.getSkullIcon() != -1;
             if (skullMode == PlayerRiskConfig.SkullMode.UNSKULLED && isSkulled)
@@ -85,8 +84,8 @@ public class PlayerRiskOverlay extends Overlay {
             else if (skullMode == PlayerRiskConfig.SkullMode.SKULLED && !isSkulled)
                 continue;
 
-            // Beregn risiko
-            int totalRisk = RiskCalculator.calculateRisk(player, itemManager);
+            // Beregn risiko (bruk long for å unngå overflow)
+            long totalRisk = RiskCalculator.calculateRisk(player, itemManager);
             RiskCategory category = RiskCalculator.getRiskCategory(totalRisk, config);
             if (category == RiskCategory.NONE || !isCategoryEnabled(category))
                 continue;
@@ -94,12 +93,12 @@ public class PlayerRiskOverlay extends Overlay {
             if (riskColor == null)
                 continue;
 
-            // Tegn outline
+            // Tegn outline hvis aktivert
             if (config.enableOutline()) {
                 modelOutlineRenderer.drawOutline(player, config.outlineThickness(), riskColor, 0);
             }
 
-            // Tegn tile-overlay
+            // Tegn tile-overlay hvis aktivert
             if (config.enableTile()) {
                 Polygon tilePoly = player.getCanvasTilePoly();
                 if (tilePoly != null) {
@@ -108,7 +107,7 @@ public class PlayerRiskOverlay extends Overlay {
                 }
             }
 
-            // Tegn hull-overlay
+            // Tegn hull-overlay hvis aktivert
             if (config.enableHull()) {
                 Shape hullShape = player.getConvexHull();
                 if (hullShape != null) {
@@ -125,7 +124,7 @@ public class PlayerRiskOverlay extends Overlay {
         return null;
     }
 
-    private Color getRiskColor(int riskValue) {
+    private Color getRiskColor(long riskValue) {
         if (riskValue > config.insaneRiskGP())
             return config.insaneRiskColor();
         else if (riskValue > config.highRiskGP())
@@ -137,7 +136,7 @@ public class PlayerRiskOverlay extends Overlay {
         return null;
     }
 
-    private void drawRiskText(Graphics2D graphics, Player player, int totalRisk, Color riskColor) {
+    private void drawRiskText(Graphics2D graphics, Player player, long totalRisk, Color riskColor) {
         String riskText = formatRiskValue(totalRisk);
         FontMetrics metrics = graphics.getFontMetrics();
         int textWidth = metrics.stringWidth(riskText);
@@ -191,7 +190,7 @@ public class PlayerRiskOverlay extends Overlay {
         graphics.drawString(riskText, drawX, baseline);
     }
 
-    private String formatRiskValue(int value) {
+    private String formatRiskValue(long value) {
         if (value >= 1_000_000)
             return String.format("%.1fM", value / 1_000_000.0);
         else if (value >= 1_000)

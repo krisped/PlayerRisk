@@ -55,7 +55,7 @@ public class PlayerRiskMinimapOverlay extends Overlay {
             if (player == null || player.getName() == null) {
                 continue;
             }
-            // Ekskluder local player med mindre enabled i config
+            // Ekskluder local player med mindre aktivert i config
             if (player.equals(client.getLocalPlayer()) && !config.highlightLocalPlayer())
                 continue;
             // PvP-filtrering
@@ -78,8 +78,7 @@ public class PlayerRiskMinimapOverlay extends Overlay {
                     }
                 }
             }
-
-            // Skull Mode filtering
+            // Skull Mode-filtrering
             PlayerRiskConfig.SkullMode skullMode = config.skullMode();
             boolean isSkulled = player.getSkullIcon() != -1;
             if (skullMode == PlayerRiskConfig.SkullMode.UNSKULLED && isSkulled)
@@ -88,13 +87,12 @@ public class PlayerRiskMinimapOverlay extends Overlay {
                 continue;
 
             // Beregn risiko
-            int totalRisk = RiskCalculator.calculateRisk(player, itemManager);
-            PlayerRiskOverlay.RiskCategory category = RiskCalculator.getRiskCategory(totalRisk, config);
-            if (category == PlayerRiskOverlay.RiskCategory.NONE || !isCategoryEnabled(category))
-                continue;
+            long totalRisk = RiskCalculator.calculateRisk(player, itemManager);
             Color riskColor = getRiskColor(totalRisk);
             if (riskColor == null)
                 continue;
+
+            String riskText = formatRiskValue(totalRisk);
 
             Point minimapLoc = player.getMinimapLocation();
             if (minimapLoc == null || usedMinimapLocations.contains(minimapLoc))
@@ -108,7 +106,6 @@ public class PlayerRiskMinimapOverlay extends Overlay {
                     graphics.fillOval(minimapLoc.getX() - size / 2, minimapLoc.getY() - size / 2, size, size);
                     break;
                 case RISK:
-                    String riskText = formatRiskValue(totalRisk);
                     OverlayUtil.renderTextLocation(graphics, minimapLoc, riskText, riskColor);
                     break;
                 default:
@@ -118,22 +115,7 @@ public class PlayerRiskMinimapOverlay extends Overlay {
         return null;
     }
 
-    private boolean isCategoryEnabled(PlayerRiskOverlay.RiskCategory category) {
-        switch (category) {
-            case LOW:
-                return config.enableLowRisk();
-            case MEDIUM:
-                return config.enableMediumRisk();
-            case HIGH:
-                return config.enableHighRisk();
-            case INSANE:
-                return config.enableInsaneRisk();
-            default:
-                return false;
-        }
-    }
-
-    private Color getRiskColor(int riskValue) {
+    private Color getRiskColor(long riskValue) {
         if (riskValue > config.insaneRiskGP())
             return config.insaneRiskColor();
         else if (riskValue > config.highRiskGP())
@@ -145,7 +127,7 @@ public class PlayerRiskMinimapOverlay extends Overlay {
         return null;
     }
 
-    private String formatRiskValue(int value) {
+    private String formatRiskValue(long value) {
         if (value >= 1_000_000)
             return String.format("%.1fM", value / 1_000_000.0);
         else if (value >= 1_000)
