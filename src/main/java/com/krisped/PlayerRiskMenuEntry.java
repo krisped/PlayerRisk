@@ -24,19 +24,11 @@ import net.runelite.api.kit.KitType;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.menus.MenuManager;
-import net.runelite.client.plugins.Plugin;
-import net.runelite.client.plugins.PluginDescriptor;
-import net.runelite.client.ui.ClientToolbar;
 import java.awt.Color;
 
-@PluginDescriptor(
-        name = "[KP] Player Risk Highlighter",
-        description = "Legger til en 'Risk Check'-meny ved høyreklikk på spillere",
-        tags = {"risk", "pvp", "menu"}
-)
 @Slf4j
 @Singleton
-public class PlayerRiskMenuEntry extends Plugin
+public class PlayerRiskMenuEntry
 {
     public static final String INSPECT_RISK = "Risk Check";
 
@@ -51,9 +43,6 @@ public class PlayerRiskMenuEntry extends Plugin
 
     @Inject
     private PlayerRiskConfig config;
-
-    @Inject
-    private ClientToolbar clientToolbar;
 
     // Lagre spillerinfo for senere bruk (dersom spillerdata ikke hentes direkte)
     private final Map<Integer, PlayerInfo> storedPlayers = new HashMap<>();
@@ -178,7 +167,8 @@ public class PlayerRiskMenuEntry extends Plugin
             final Player finalTarget = target;
             SwingUtilities.invokeLater(() ->
             {
-                clientToolbar.openPanel(PlayerRiskPlugin.getRiskNavigationButton());
+                // Forutsetter at PlayerRiskPlugin har håndtert åpning av sidepanelet
+                PlayerRiskPlugin.getRiskNavigationButton().getPanel().updateUI();
                 PlayerRiskPlugin.getRiskPanel().updateEquipment(equipment, equipmentPrices, finalTarget.getName());
             });
         }
@@ -186,7 +176,6 @@ public class PlayerRiskMenuEntry extends Plugin
         storedPlayers.clear();
     }
 
-    // Hjelpemetode for å hente spiller basert på lagret info
     private Player getPlayerFromInfo(PlayerInfo info)
     {
         for (Player p : client.getPlayers())
