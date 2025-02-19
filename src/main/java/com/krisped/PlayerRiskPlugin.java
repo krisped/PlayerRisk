@@ -57,11 +57,12 @@ public class PlayerRiskPlugin extends Plugin {
     private ClientToolbar clientToolbar;
 
     @Inject
-    private ClientThread clientThread; // Nytt felt for å sende til RiskPanel
+    private ClientThread clientThread; // For oppdatering av risk-panelet
 
-    // Opprett RiskPanel-instans og lagre i en statisk variabel
+    // Opprett RiskPanel-instans og lagre i statiske variabler
     private static RiskPanel riskPanel;
     private static NavigationButton riskNavigationButton;
+    private static ClientToolbar staticClientToolbar;
 
     @Override
     protected void startUp() throws Exception {
@@ -81,6 +82,8 @@ public class PlayerRiskPlugin extends Plugin {
                 .panel(riskPanel)
                 .build();
         clientToolbar.addNavigation(riskNavigationButton);
+        // Lagre en statisk referanse til clientToolbar for bruk i PlayerRiskMenuEntry
+        staticClientToolbar = clientToolbar;
     }
 
     @Override
@@ -109,5 +112,10 @@ public class PlayerRiskPlugin extends Plugin {
     // Statisk getter for navigasjonsknappen
     public static NavigationButton getRiskNavigationButton() {
         return riskNavigationButton;
+    }
+
+    // Statisk getter for clientToolbar (for bruk i PlayerRiskMenuEntry)
+    public static ClientToolbar getClientToolbar() {
+        return staticClientToolbar;
     }
 }

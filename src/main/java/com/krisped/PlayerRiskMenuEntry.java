@@ -1,5 +1,6 @@
 package com.krisped;
 
+import java.lang.reflect.InvocationTargetException;
 import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -8,7 +9,6 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 import javax.swing.SwingUtilities;
-
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
@@ -44,13 +44,13 @@ public class PlayerRiskMenuEntry
     @Inject
     private PlayerRiskConfig config;
 
-    // Lagre spillerinfo for senere bruk (dersom spillerdata ikke hentes direkte)
+    // Lagre spillerinfo for senere bruk
     private final Map<Integer, PlayerInfo> storedPlayers = new HashMap<>();
 
     @Subscribe
     public void onMenuOpened(MenuOpened event)
     {
-        // Når menyen åpnes, lagres alle spillere fra menyoppføringene
+        // Lagre alle spillere fra menyoppføringene
         for (MenuEntry entry : event.getMenuEntries())
         {
             if (entry.getActor() instanceof Player)
@@ -64,15 +64,15 @@ public class PlayerRiskMenuEntry
     @Subscribe
     public void onMenuEntryAdded(MenuEntryAdded event)
     {
-        // Vi håndterer kun spiller-oppføringer
+        // Håndter kun spiller-oppføringer
         if (event.getType() != MenuAction.RUNELITE_PLAYER.getId())
         {
             return;
         }
-        // Bruk riskMenuMode fra konfigurasjonen:
-        // - RIGHT_CLICK: alltid legg til
-        // - SHIFT_RIGHT_CLICK: legg til kun om SHIFT er trykket
+        // Bruk konfigurasjonen for å velge om menyen skal vises:
         // - DISABLED: fjern meny
+        // - SHIFT_RIGHT_CLICK: vis kun hvis SHIFT er trykket
+        // - RIGHT_CLICK: vis alltid
         switch (config.riskMenuMode())
         {
             case DISABLED:
@@ -84,7 +84,7 @@ public class PlayerRiskMenuEntry
                     removeMenuItem();
                     return;
                 }
-                // Fall-through: hvis SHIFT er trykket, legg til
+                // Fall-through hvis SHIFT er trykket
             case RIGHT_CLICK:
                 addMenuItem();
                 break;
@@ -98,7 +98,7 @@ public class PlayerRiskMenuEntry
         {
             return;
         }
-        // Endret: bruk contains for å sjekke menyteksten slik at fargekoder ignoreres
+        // Sjekk om menyteksten (uten fargekoder) inneholder "Risk Check"
         if (!event.getMenuOption().contains(INSPECT_RISK))
         {
             return;
@@ -120,58 +120,53 @@ public class PlayerRiskMenuEntry
         {
             return;
         }
-        // Sjekk om det er lokal spiller, og om vi skal vise den
-        if (target.equals(client.getLocalPlayer()) && !config.highlightLocalPlayer())
-        {
-            return;
-        }
-        // Filtrer basert på skull-status
-        PlayerRiskConfig.SkullMode skullMode = config.skullMode();
-        boolean isSkulled = target.getSkullIcon() != -1;
-        if ((skullMode == PlayerRiskConfig.SkullMode.UNSKULLED && isSkulled) ||
-                (skullMode == PlayerRiskConfig.SkullMode.SKULLED && !isSkulled))
-        {
-            return;
-        }
 
-        // Kalkuler risiko
+        // Utfør eventuelle chat-handlinger (hvis konfigurert)
         long risk = RiskCalculator.calculateRisk(target, itemManager);
         String formattedRisk = NumberFormat.getNumberInstance().format(risk);
-
-        // Utfør handling basert på config for riskMenuAction
         if (config.riskMenuAction() == PlayerRiskConfig.RiskMenuAction.CHAT ||
                 config.riskMenuAction() == PlayerRiskConfig.RiskMenuAction.ALL)
         {
             String message = "Player " + target.getName() + " is risking " + formattedRisk + " GP.";
             client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", message, null);
         }
-        if (config.riskMenuAction() == PlayerRiskConfig.RiskMenuAction.SIDE_PANEL ||
-                config.riskMenuAction() == PlayerRiskConfig.RiskMenuAction.ALL)
+
+        // Simuler et trykk på sidepanelknappen for å åpne panelet med en gang
+        try
         {
-            // Bygg utstyrskart og oppdater sidepanelet
-            Map<KitType, net.runelite.api.ItemComposition> equipment = new HashMap<>();
-            Map<KitType, Integer> equipmentPrices = new HashMap<>();
-            if (target.getPlayerComposition() != null)
+            SwingUtilities.invokeAndWait(() ->
             {
-                for (KitType kit : KitType.values())
-                {
-                    int itemId = target.getPlayerComposition().getEquipmentId(kit);
-                    if (itemId > 0)
-                    {
-                        net.runelite.api.ItemComposition comp = client.getItemDefinition(itemId);
-                        equipment.put(kit, comp);
-                        equipmentPrices.put(kit, itemManager.getItemPrice(itemId));
-                    }
-                }
-            }
-            final Player finalTarget = target;
-            SwingUtilities.invokeLater(() ->
-            {
-                // Forutsetter at PlayerRiskPlugin har håndtert åpning av sidepanelet
-                PlayerRiskPlugin.getRiskNavigationButton().getPanel().updateUI();
-                PlayerRiskPlugin.getRiskPanel().updateEquipment(equipment, equipmentPrices, finalTarget.getName());
+                // Bruker clientToolbar til å åpne panelet
+                PlayerRiskPlugin.getClientToolbar().openPanel(PlayerRiskPlugin.getRiskNavigationButton());
             });
         }
+        catch (InterruptedException | InvocationTargetException ex)
+        {
+            log.warn("Feil ved åpning av sidepanel: {}", ex.getMessage());
+        }
+
+        // Bygg utstyrskart og oppdater sidepanelet
+        Map<KitType, net.runelite.api.ItemComposition> equipment = new HashMap<>();
+        Map<KitType, Integer> equipmentPrices = new HashMap<>();
+        if (target.getPlayerComposition() != null)
+        {
+            for (KitType kit : KitType.values())
+            {
+                int itemId = target.getPlayerComposition().getEquipmentId(kit);
+                if (itemId > 0)
+                {
+                    net.runelite.api.ItemComposition comp = client.getItemDefinition(itemId);
+                    equipment.put(kit, comp);
+                    equipmentPrices.put(kit, itemManager.getItemPrice(itemId));
+                }
+            }
+        }
+        final Player finalTarget = target;
+        SwingUtilities.invokeLater(() ->
+        {
+            PlayerRiskPlugin.getRiskPanel().updateEquipment(equipment, equipmentPrices, finalTarget.getName());
+        });
+
         // Tøm lagrede spillere for å unngå utdatert info
         storedPlayers.clear();
     }
