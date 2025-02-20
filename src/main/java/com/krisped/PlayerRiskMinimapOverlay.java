@@ -24,22 +24,23 @@ public class PlayerRiskMinimapOverlay extends Overlay
     private final PlayerRiskConfig config;
     private final CombatManager combatManager;
 
-    // Hvis du ønsker at plugin-en skal kunne aktivere/deaktivere overlay,
-    // kan du styre det med setEnabled(...) i plugin-koden
+    // Du kan styre dette fra plugin-koden om ønskelig
     private boolean enabled = true;
 
     @Inject
-    public PlayerRiskMinimapOverlay(Client client,
-                                    ItemManager itemManager,
-                                    PlayerRiskConfig config,
-                                    CombatManager combatManager)
+    public PlayerRiskMinimapOverlay(
+            Client client,
+            ItemManager itemManager,
+            PlayerRiskConfig config,
+            CombatManager combatManager
+    )
     {
         this.client = client;
         this.itemManager = itemManager;
         this.config = config;
         this.combatManager = combatManager;
 
-        // Konfigurer overlay-egenskaper
+        // Overlay-innstillinger
         setLayer(OverlayLayer.ABOVE_WIDGETS);
         setPosition(OverlayPosition.DYNAMIC);
         setPriority(OverlayPriority.HIGH);
@@ -53,12 +54,13 @@ public class PlayerRiskMinimapOverlay extends Overlay
     @Override
     public Dimension render(Graphics2D graphics)
     {
+        // Hvis overlay er deaktivert, eller local player mangler
         if (!enabled || client.getLocalPlayer() == null)
         {
             return null;
         }
 
-        // Dersom config sier "ikke highlight i combat" og du er i combat -> return null
+        // Hvis highlight er slått av i combat
         if (config.disableHighlightInCombat() && combatManager.isInCombat())
         {
             return null;
@@ -72,50 +74,51 @@ public class PlayerRiskMinimapOverlay extends Overlay
                 continue;
             }
 
-            // Hopp over local player hvis highlightLocalPlayer = false
+            // Hvis "highlightLocalPlayer" = false, hopp over deg selv
             if (player.equals(client.getLocalPlayer()) && !config.highlightLocalPlayer())
             {
                 continue;
             }
 
-            // Sjekk om PvP-filteret godkjenner denne spilleren
+            // Filtrer på PvP Mode (ON / ATTACKABLE => krever PvP-område, etc.)
             if (!passesPvpFilter(player))
             {
                 continue;
             }
 
-            // Sjekk om skull-filteret godkjenner denne spilleren
+            // Hvis pvpMode != DISABLED, filtrer på skull mode
             if (!passesSkullFilter(player))
             {
                 continue;
             }
 
-            // Finn spillerens totale risk (basert på gear)
+            // Finn risiko basert på gear
             long totalRisk = RiskCalculator.calculateRisk(player, itemManager);
 
-            // Finn en farge å tegne med (null hvis risk er for lavt)
+            // Finn en farge basert på om risk er > low/med/high/insane
             Color riskColor = getRiskColor(totalRisk);
             if (riskColor == null)
             {
+                // Under lowRiskGP => ingenting tegnes
                 continue;
             }
 
-            // Formatér risk til f.eks. 100K, 1.2M osv.
+            // Formatér tall til f.eks. "123K"
             String riskText = formatRiskValue(totalRisk);
 
-            // Hent minimap-lokasjon (kan være null hvis spilleren er langt unna e.l.)
+            // Minimapposisjon
             Point minimapLoc = player.getMinimapLocation();
             if (minimapLoc == null)
             {
                 continue;
             }
 
-            // Tegn enten en dot eller en liten tekst
+            // Tegn enten en dot eller en tekst
             switch (config.minimapDisplayMode())
             {
                 case DOT:
                 {
-                    int size = 4; // punktets diameter
+                    int size = 4; // Sirkelstørrelse
                     graphics.setColor(riskColor);
                     graphics.fillOval(
                             minimapLoc.getX() - size / 2,
@@ -127,14 +130,13 @@ public class PlayerRiskMinimapOverlay extends Overlay
                 }
                 case RISK:
                 {
+                    // Tegn f.eks. "123K" i valgte farge
                     OverlayUtil.renderTextLocation(graphics, minimapLoc, riskText, riskColor);
                     break;
                 }
                 default:
-                {
-                    // NONE -> ikke tegn noe
+                    // NONE => ikke tegn noe
                     break;
-                }
             }
         }
 
@@ -142,27 +144,30 @@ public class PlayerRiskMinimapOverlay extends Overlay
     }
 
     /**
-     * Returnerer true hvis spilleren bestå pvp-filteret i config.
+     * Avgjør om spilleren passer pvpMode-filteret.
+     * pvpMode=DISABLED => ingen PvP-sjekk.
      */
     private boolean passesPvpFilter(Player player)
     {
-        PlayerRiskConfig.PvPMode mode = config.pvpMode();
-        if (mode == PlayerRiskConfig.PvPMode.DISABLED)
+        PlayerRiskConfig.PvPMode pvpMode = config.pvpMode();
+
+        if (pvpMode == PlayerRiskConfig.PvPMode.DISABLED)
         {
-            return true; // Ingen filtrering
+            // Ingen filtrering
+            return true;
         }
 
+        // Ellers kreves det at spilleren er i PvP-verden eller Wilderness
         boolean inPvPWorld = client.getWorldType().contains(WorldType.PVP);
-        boolean inWilderness = client.getVar(Varbits.IN_WILDERNESS) > 0;
+        boolean inWilderness = (client.getVar(Varbits.IN_WILDERNESS) > 0);
 
-        // Ved PvPMode=ON eller ATTACKABLE kreves enten PvPWorld eller Wilderness
         if (!inPvPWorld && !inWilderness)
         {
             return false;
         }
 
-        // Ved ATTACKABLE sjekk også combat-lvl differanse
-        if (mode == PlayerRiskConfig.PvPMode.ATTACKABLE)
+        // Hvis pvpMode=ATTACKABLE => sjekk combat-lvl differanse
+        if (pvpMode == PlayerRiskConfig.PvPMode.ATTACKABLE)
         {
             Player local = client.getLocalPlayer();
             if (local != null)
@@ -170,10 +175,10 @@ public class PlayerRiskMinimapOverlay extends Overlay
                 int localCombat = local.getCombatLevel();
                 int targetCombat = player.getCombatLevel();
 
+                // 15 er base. I Wilderness øker differansen med wilderness-lvl
                 int allowedDiff = 15;
                 if (inWilderness)
                 {
-                    // Wilderness-lvl
                     allowedDiff += client.getVar(Varbits.IN_WILDERNESS);
                 }
 
@@ -188,25 +193,30 @@ public class PlayerRiskMinimapOverlay extends Overlay
     }
 
     /**
-     * Returnerer true hvis spilleren består skull-filteret i config.
-     * (Kun relevant hvis pvpMode != DISABLED)
+     * Avgjør om spilleren passer skullMode-filteret.
+     * Brukes kun hvis pvpMode != DISABLED
      */
     private boolean passesSkullFilter(Player player)
     {
-        // Hvis config.skullMode() == ALL -> ingen filtrering
-        PlayerRiskConfig.SkullMode mode = config.skullMode();
-        if (mode == PlayerRiskConfig.SkullMode.ALL)
+        // Hvis pvpMode=DISABLED -> ignorer skull-mode
+        if (config.pvpMode() == PlayerRiskConfig.PvPMode.DISABLED)
+        {
+            return true;
+        }
+
+        PlayerRiskConfig.SkullMode skullMode = config.skullMode();
+        if (skullMode == PlayerRiskConfig.SkullMode.ALL)
         {
             return true;
         }
 
         boolean isSkulled = (player.getSkullIcon() != -1);
 
-        if (mode == PlayerRiskConfig.SkullMode.SKULLED && !isSkulled)
+        if (skullMode == PlayerRiskConfig.SkullMode.SKULLED && !isSkulled)
         {
             return false;
         }
-        if (mode == PlayerRiskConfig.SkullMode.UNSKULLED && isSkulled)
+        if (skullMode == PlayerRiskConfig.SkullMode.UNSKULLED && isSkulled)
         {
             return false;
         }
@@ -215,7 +225,8 @@ public class PlayerRiskMinimapOverlay extends Overlay
     }
 
     /**
-     * Plukker riktig farge basert på totalRisk, eller null hvis risk < laveste threshold.
+     * Plukker riktig overlay-farge basert på risk-verdien.
+     * Returnerer null hvis spilleren har < lowRiskGP.
      */
     private Color getRiskColor(long totalRisk)
     {
@@ -235,12 +246,12 @@ public class PlayerRiskMinimapOverlay extends Overlay
         {
             return config.lowRiskColor();
         }
-        // Returner null hvis under "lowRiskGP"
+        // Ingenting
         return null;
     }
 
     /**
-     * Omformer tall til f.eks. 128K, 2.4M, etc.
+     * Konverterer f.eks. 1234567 -> "1.2M"
      */
     private String formatRiskValue(long value)
     {
