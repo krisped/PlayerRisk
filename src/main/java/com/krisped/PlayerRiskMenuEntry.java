@@ -17,6 +17,7 @@ import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.Player;
 import net.runelite.api.PlayerComposition;
+import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.MenuEntryAdded;
 import net.runelite.api.events.MenuOpened;
 import net.runelite.api.events.MenuOptionClicked;
@@ -24,13 +25,14 @@ import net.runelite.api.kit.KitType;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.menus.MenuManager;
-import java.awt.Color;
+import net.runelite.client.util.Text;
 
 @Slf4j
 @Singleton
 public class PlayerRiskMenuEntry
 {
-    public static final String INSPECT_RISK = "Risk Check";
+    // Selve basisteksten for menypunktet (uten farger)
+    private static final String BASE_RISK_CHECK_OPTION = "Risk Check";
 
     @Inject
     private Client client;
@@ -44,13 +46,18 @@ public class PlayerRiskMenuEntry
     @Inject
     private PlayerRiskConfig config;
 
-    // Lagre spillerinfo for senere bruk
+    // Cache for spillerinfo
     private final Map<Integer, PlayerInfo> storedPlayers = new HashMap<>();
 
+    /**
+     * Når menyen åpnes, lagre spillerinfo fra oppføringene.
+     */
     @Subscribe
     public void onMenuOpened(MenuOpened event)
     {
-        // Lagre alle spillere fra menyoppføringene
+        // Tøm den gamle cachen for sikkerhets skyld.
+        storedPlayers.clear();
+
         for (MenuEntry entry : event.getMenuEntries())
         {
             if (entry.getActor() instanceof Player)
@@ -61,59 +68,74 @@ public class PlayerRiskMenuEntry
         }
     }
 
+    /**
+     * Legger til menypunktet hvis riktig betingelse (holdShift av eller shift holdes nede).
+     */
     @Subscribe
     public void onMenuEntryAdded(MenuEntryAdded event)
     {
-        // Håndter kun spiller-oppføringer
+        // Vi vil bare endre MENY for RUNELITE_PLAYER
         if (event.getType() != MenuAction.RUNELITE_PLAYER.getId())
         {
             return;
         }
-        // Bruk konfigurasjonen for å velge om menyen skal vises:
-        // - DISABLED: fjern meny
-        // - SHIFT_RIGHT_CLICK: vis kun hvis SHIFT er trykket
-        // - RIGHT_CLICK: vis alltid
-        switch (config.riskMenuMode())
+
+        // "holdShift" = av -> menypunktet skal være der alltid,
+        // eller "holdShift" = på -> menypunktet skal bare dukke opp når shift holdes.
+        if (!config.holdShift() || client.isKeyPressed(KeyCode.KC_SHIFT))
         {
-            case DISABLED:
-                removeMenuItem();
-                return;
-            case SHIFT_RIGHT_CLICK:
-                if (!client.isKeyPressed(KeyCode.KC_SHIFT))
-                {
-                    removeMenuItem();
-                    return;
-                }
-                // Fall-through hvis SHIFT er trykket
-            case RIGHT_CLICK:
-                addMenuItem();
-                break;
+            addMenuItem();
+        }
+        else
+        {
+            removeMenuItem();
         }
     }
 
+    /**
+     * Hver ClientTick: Hvis holdShift er på, men shift ikke trykkes, fjern menypunktet.
+     */
+    @Subscribe
+    public void onClientTick(ClientTick event)
+    {
+        if (config.holdShift() && !client.isKeyPressed(KeyCode.KC_SHIFT))
+        {
+            removeMenuItem();
+        }
+    }
+
+    /**
+     * Håndterer klikk på menyvalget "Risk Check" (farget eller ei).
+     */
     @Subscribe
     public void onMenuOptionClicked(MenuOptionClicked event)
     {
+        // Må være av typen RUNELITE_PLAYER
         if (event.getMenuAction() != MenuAction.RUNELITE_PLAYER)
         {
             return;
         }
-        // Sjekk om menyteksten (uten fargekoder) inneholder "Risk Check"
-        if (!event.getMenuOption().contains(INSPECT_RISK))
+
+        // Fjern fargetagene fra event.getMenuOption()
+        // og sjekk om det matcher vår ufargede basisstreng.
+        String clickedOption = Text.removeTags(event.getMenuOption());
+        if (!clickedOption.equals(BASE_RISK_CHECK_OPTION))
         {
             return;
         }
 
-        // Hent spillerinfo basert på eventets id
+        // Slå opp spillerinfo
         PlayerInfo info = storedPlayers.get(event.getId());
         if (info == null)
         {
             return;
         }
+
         // Prøv å hente spilleren direkte
         Player target = client.getTopLevelWorldView().players().byIndex(event.getId());
         if (target == null)
         {
+            // fallback: let i client.getPlayers()
             target = getPlayerFromInfo(info);
         }
         if (target == null)
@@ -121,9 +143,11 @@ public class PlayerRiskMenuEntry
             return;
         }
 
-        // Utfør eventuelle chat-handlinger (hvis konfigurert)
+        // Beregn risiko
         long risk = RiskCalculator.calculateRisk(target, itemManager);
         String formattedRisk = NumberFormat.getNumberInstance().format(risk);
+
+        // Avhengig av config, send chatmelding og/eller åpne sidepanel
         if (config.riskMenuAction() == PlayerRiskConfig.RiskMenuAction.CHAT ||
                 config.riskMenuAction() == PlayerRiskConfig.RiskMenuAction.ALL)
         {
@@ -131,21 +155,18 @@ public class PlayerRiskMenuEntry
             client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", message, null);
         }
 
-        // Simuler et trykk på sidepanelknappen for å åpne panelet med en gang
+        // Åpne sidepanelet
         try
         {
             SwingUtilities.invokeAndWait(() ->
-            {
-                // Bruker clientToolbar til å åpne panelet
-                PlayerRiskPlugin.getClientToolbar().openPanel(PlayerRiskPlugin.getRiskNavigationButton());
-            });
+                    PlayerRiskPlugin.getClientToolbar().openPanel(PlayerRiskPlugin.getRiskNavigationButton()));
         }
         catch (InterruptedException | InvocationTargetException ex)
         {
             log.warn("Feil ved åpning av sidepanel: {}", ex.getMessage());
         }
 
-        // Bygg utstyrskart og oppdater sidepanelet
+        // Bygg utstyrsmapping
         Map<KitType, net.runelite.api.ItemComposition> equipment = new HashMap<>();
         Map<KitType, Integer> equipmentPrices = new HashMap<>();
         if (target.getPlayerComposition() != null)
@@ -161,16 +182,54 @@ public class PlayerRiskMenuEntry
                 }
             }
         }
+
         final Player finalTarget = target;
         SwingUtilities.invokeLater(() ->
-        {
-            PlayerRiskPlugin.getRiskPanel().updateEquipment(equipment, equipmentPrices, finalTarget.getName());
-        });
-
-        // Tøm lagrede spillere for å unngå utdatert info
-        storedPlayers.clear();
+                PlayerRiskPlugin.getRiskPanel().updateEquipment(equipment, equipmentPrices, finalTarget.getName()));
     }
 
+    /**
+     * Legger til menypunktet i farget versjon – og husk å bruke samme streng ved fjerning.
+     */
+    private void addMenuItem()
+    {
+        // Hent farge fra config
+        // (Hvis du bare vil ha en fast farge, kan du hardkode en hex-streng)
+        // NB: Her henter vi fargen fra config.riskMenuColor().
+        // Du kan også gjøre "String colorHex = "FF0000";" for å hardkode f.eks. rød.
+        String colorHex = String.format("%02X%02X%02X",
+                config.riskMenuColor().getRed(),
+                config.riskMenuColor().getGreen(),
+                config.riskMenuColor().getBlue());
+
+        // Bygg farget streng
+        String coloredOption = "<col=" + colorHex + ">" + BASE_RISK_CHECK_OPTION + "</col>";
+
+        // Sjekk om menypunktet allerede finnes
+        if (Arrays.stream(client.getPlayerOptions()).noneMatch(coloredOption::equals))
+        {
+            menuManager.get().addPlayerMenuItem(coloredOption);
+        }
+    }
+
+    /**
+     * Fjern menypunktet – og bruk akkurat samme fargede streng vi brukte i addMenuItem().
+     */
+    private void removeMenuItem()
+    {
+        // Bygger opp den fargede strengen på nytt, identisk som i addMenuItem()
+        String colorHex = String.format("%02X%02X%02X",
+                config.riskMenuColor().getRed(),
+                config.riskMenuColor().getGreen(),
+                config.riskMenuColor().getBlue());
+        String coloredOption = "<col=" + colorHex + ">" + BASE_RISK_CHECK_OPTION + "</col>";
+
+        menuManager.get().removePlayerMenuItem(coloredOption);
+    }
+
+    /**
+     * Hjelpemetode for fallback: Finn en player i client.getPlayers() med matchende ID.
+     */
     private Player getPlayerFromInfo(PlayerInfo info)
     {
         for (Player p : client.getPlayers())
@@ -183,24 +242,9 @@ public class PlayerRiskMenuEntry
         return null;
     }
 
-    private void addMenuItem()
-    {
-        // Hent fargen fra konfigurasjonen
-        Color menuColor = config.riskMenuColor();
-        String colorHex = String.format("%02X%02X%02X", menuColor.getRed(), menuColor.getGreen(), menuColor.getBlue());
-        String coloredOption = "<col=" + colorHex + ">" + INSPECT_RISK + "</col>";
-        if (Arrays.stream(client.getPlayerOptions()).noneMatch(coloredOption::equals))
-        {
-            menuManager.get().addPlayerMenuItem(coloredOption);
-        }
-    }
-
-    private void removeMenuItem()
-    {
-        menuManager.get().removePlayerMenuItem(INSPECT_RISK);
-    }
-
-    // Enkel lagringsklasse for spillerinfo
+    /**
+     * Enkel klasse for å holde på spillerinfo.
+     */
     private static class PlayerInfo
     {
         private final int id;
@@ -214,19 +258,8 @@ public class PlayerRiskMenuEntry
             this.playerComposition = composition;
         }
 
-        public int getId()
-        {
-            return id;
-        }
-
-        public String getName()
-        {
-            return name;
-        }
-
-        public PlayerComposition getPlayerComposition()
-        {
-            return playerComposition;
-        }
+        public int getId() { return id; }
+        public String getName() { return name; }
+        public PlayerComposition getPlayerComposition() { return playerComposition; }
     }
 }

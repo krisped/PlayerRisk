@@ -303,16 +303,18 @@ public interface PlayerRiskConfig extends Config
     )
     String riskMenuSection = "riskMenuSection";
 
+    // Bruk en enkel boolean (holdShift) slik som Equipment Inspector
     @ConfigItem(
-            keyName = "riskMenuMode",
-            name = "Risk Menu Mode",
-            description = "Choose when to show the Risk Check menu: Disabled, RightClick, Shift + RightClick.",
+            keyName = "holdShift",
+            name = "Hold Shift",
+            description = "Angir om du må holde shift for å aktivere Risk Check",
             position = 1,
             section = riskMenuSection
     )
-    default RiskMenuMode riskMenuMode() { return RiskMenuMode.RIGHT_CLICK; }
+    default boolean holdShift() {
+        return false;
+    }
 
-    @Alpha
     @ConfigItem(
             keyName = "riskMenuColor",
             name = "Risk Menu Color",
@@ -392,13 +394,6 @@ public interface PlayerRiskConfig extends Config
         {
             return displayName;
         }
-    }
-
-    enum RiskMenuMode
-    {
-        DISABLED,
-        RIGHT_CLICK,
-        SHIFT_RIGHT_CLICK
     }
 
     enum SkullMode
