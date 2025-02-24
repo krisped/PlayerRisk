@@ -6,6 +6,31 @@ import java.awt.Color;
 @ConfigGroup("playerRisk")
 public interface PlayerRiskConfig extends Config
 {
+    // -- NYE FELTER (Utenfor seksjoner, for hotkey-aktivering) --
+    @ConfigItem(
+            keyName = "useHotkeyActivation",
+            name = "Use Hotkey Activation",
+            description = "If enabled, the entire plugin is only active while the selected hotkey is held.",
+            position = -2
+    )
+    default boolean useHotkeyActivation() { return false; }
+
+    @ConfigItem(
+            keyName = "activationHotkey",
+            name = "Activation Hotkey",
+            description = "Choose which hotkey (ALT, CTRL, SHIFT) to hold for activation if 'Use Hotkey Activation' is on.",
+            position = -1
+    )
+    default HotkeyOption activationHotkey() { return HotkeyOption.ALT; }
+
+    // Valgbare hotkeys
+    enum HotkeyOption
+    {
+        SHIFT,
+        CTRL,
+        ALT
+    }
+
     // --- Risk Values (med nye minimumsgrenser) ---
     @ConfigSection(
             name = "Risk Values",

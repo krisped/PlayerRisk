@@ -4,6 +4,7 @@ import com.google.inject.Provides;
 import java.awt.image.BufferedImage;
 import javax.inject.Inject;
 import net.runelite.api.Client;
+import net.runelite.api.KeyCode;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.game.ItemManager;
@@ -82,6 +83,7 @@ public class PlayerRiskPlugin extends Plugin {
                 .panel(riskPanel)
                 .build();
         clientToolbar.addNavigation(riskNavigationButton);
+
         // Lagre en statisk referanse til clientToolbar for bruk i PlayerRiskMenuEntry
         staticClientToolbar = clientToolbar;
     }
@@ -117,5 +119,30 @@ public class PlayerRiskPlugin extends Plugin {
     // Statisk getter for clientToolbar (for bruk i PlayerRiskMenuEntry)
     public static ClientToolbar getClientToolbar() {
         return staticClientToolbar;
+    }
+
+    /**
+     * Metode som sjekker om pluginen er aktiv basert på config (bruk av hotkey).
+     * Dersom useHotkeyActivation = false, alltid true.
+     * Hvis true, må valgt hotkey holdes nede.
+     */
+    public static boolean isHotkeyActive(Client client, PlayerRiskConfig config)
+    {
+        if (!config.useHotkeyActivation())
+        {
+            // Dersom hotkey-aktivering ikke er på, alltid aktiv
+            return true;
+        }
+        // Sjekk hvilken hotkey brukeren har valgt
+        switch (config.activationHotkey())
+        {
+            case SHIFT:
+                return client.isKeyPressed(KeyCode.KC_SHIFT);
+            case CTRL:
+                return client.isKeyPressed(KeyCode.KC_CONTROL);
+            case ALT:
+                return client.isKeyPressed(KeyCode.KC_ALT);
+        }
+        return true;
     }
 }

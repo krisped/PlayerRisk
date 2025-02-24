@@ -229,6 +229,8 @@ public class RiskPanel extends PluginPanel
             totalLabel.setForeground(Color.YELLOW);
         }
         totalLabel.setOpaque(false);
+        totalLabel.setToolTipText(java.text.NumberFormat.getNumberInstance(java.util.Locale.US).format(totalRisk));
+
         panel.add(Box.createHorizontalStrut(8));
         panel.add(label);
         panel.add(totalLabel);

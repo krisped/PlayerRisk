@@ -4,7 +4,6 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import javax.inject.Inject;
-
 import net.runelite.api.Client;
 import net.runelite.api.Player;
 import net.runelite.api.Point;
@@ -54,8 +53,8 @@ public class PlayerRiskMinimapOverlay extends Overlay
     @Override
     public Dimension render(Graphics2D graphics)
     {
-        // Hvis overlay er deaktivert, eller local player mangler
-        if (!enabled || client.getLocalPlayer() == null)
+        // Hvis plugin er avskrudd pga hotkey, eller overlay er ikke enabled i koden
+        if (!enabled || !PlayerRiskPlugin.isHotkeyActive(client, config))
         {
             return null;
         }
@@ -143,21 +142,15 @@ public class PlayerRiskMinimapOverlay extends Overlay
         return null;
     }
 
-    /**
-     * Avgjør om spilleren passer pvpMode-filteret.
-     * pvpMode=DISABLED => ingen PvP-sjekk.
-     */
     private boolean passesPvpFilter(Player player)
     {
         PlayerRiskConfig.PvPMode pvpMode = config.pvpMode();
 
         if (pvpMode == PlayerRiskConfig.PvPMode.DISABLED)
         {
-            // Ingen filtrering
             return true;
         }
 
-        // Ellers kreves det at spilleren er i PvP-verden eller Wilderness
         boolean inPvPWorld = client.getWorldType().contains(WorldType.PVP);
         boolean inWilderness = (client.getVar(Varbits.IN_WILDERNESS) > 0);
 
@@ -166,7 +159,6 @@ public class PlayerRiskMinimapOverlay extends Overlay
             return false;
         }
 
-        // Hvis pvpMode=ATTACKABLE => sjekk combat-lvl differanse
         if (pvpMode == PlayerRiskConfig.PvPMode.ATTACKABLE)
         {
             Player local = client.getLocalPlayer();
@@ -174,8 +166,6 @@ public class PlayerRiskMinimapOverlay extends Overlay
             {
                 int localCombat = local.getCombatLevel();
                 int targetCombat = player.getCombatLevel();
-
-                // 15 er base. I Wilderness øker differansen med wilderness-lvl
                 int allowedDiff = 15;
                 if (inWilderness)
                 {
@@ -192,13 +182,8 @@ public class PlayerRiskMinimapOverlay extends Overlay
         return true;
     }
 
-    /**
-     * Avgjør om spilleren passer skullMode-filteret.
-     * Brukes kun hvis pvpMode != DISABLED
-     */
     private boolean passesSkullFilter(Player player)
     {
-        // Hvis pvpMode=DISABLED -> ignorer skull-mode
         if (config.pvpMode() == PlayerRiskConfig.PvPMode.DISABLED)
         {
             return true;
@@ -220,14 +205,9 @@ public class PlayerRiskMinimapOverlay extends Overlay
         {
             return false;
         }
-
         return true;
     }
 
-    /**
-     * Plukker riktig overlay-farge basert på risk-verdien.
-     * Returnerer null hvis spilleren har < lowRiskGP.
-     */
     private Color getRiskColor(long totalRisk)
     {
         if (totalRisk > config.insaneRiskGP())
@@ -246,13 +226,9 @@ public class PlayerRiskMinimapOverlay extends Overlay
         {
             return config.lowRiskColor();
         }
-        // Ingenting
         return null;
     }
 
-    /**
-     * Konverterer f.eks. 1234567 -> "1.2M"
-     */
     private String formatRiskValue(long value)
     {
         if (value >= 1_000_000)

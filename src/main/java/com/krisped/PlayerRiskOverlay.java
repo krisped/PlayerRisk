@@ -49,7 +49,13 @@ public class PlayerRiskOverlay extends Overlay
     @Override
     public Dimension render(Graphics2D graphics)
     {
-        if (!enabled || (config.disableHighlightInCombat() && combatManager.isInCombat()))
+        // Hvis plugin er "av" pga hotkey, eller overlay globalt avslått
+        if (!enabled || !PlayerRiskPlugin.isHotkeyActive(client, config))
+        {
+            return null;
+        }
+
+        if (config.disableHighlightInCombat() && combatManager.isInCombat())
         {
             return null;
         }
@@ -97,7 +103,6 @@ public class PlayerRiskOverlay extends Overlay
                     continue;
             }
 
-            // Beregn risiko
             long totalRisk = RiskCalculator.calculateRisk(player, itemManager);
             RiskCategory category = RiskCalculator.getRiskCategory(totalRisk, config);
             if (category == RiskCategory.NONE || !isCategoryEnabled(category))

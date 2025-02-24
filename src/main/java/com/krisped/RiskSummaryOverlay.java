@@ -34,9 +34,11 @@ public class RiskSummaryOverlay extends OverlayPanel {
 
     @Override
     public Dimension render(Graphics2D graphics) {
-        if (!config.showOverlay() ||
-                config.overlayDisplayType() == PlayerRiskConfig.OverlayDisplayType.DISABLED ||
-                client.getLocalPlayer() == null)
+        // Hvis overlay er skrudd av i config, eller plugin ikke er aktiv pga hotkey
+        if (!config.showOverlay()
+                || config.overlayDisplayType() == PlayerRiskConfig.OverlayDisplayType.DISABLED
+                || client.getLocalPlayer() == null
+                || !PlayerRiskPlugin.isHotkeyActive(client, config))
         {
             return null;
         }
@@ -179,7 +181,7 @@ public class RiskSummaryOverlay extends OverlayPanel {
                 continue;
             if (player.equals(client.getLocalPlayer()) && !config.highlightLocalPlayer())
                 continue;
-            // Kun filtrer på PvP-verden/område hvis PvP Mode er ON eller ATTACKABLE
+
             if (pvpMode != PlayerRiskConfig.PvPMode.DISABLED) {
                 boolean inPvPWorld = client.getWorldType().contains(WorldType.PVP);
                 boolean inWilderness = client.getVar(Varbits.IN_WILDERNESS) > 0;
@@ -198,15 +200,17 @@ public class RiskSummaryOverlay extends OverlayPanel {
                     }
                 }
             }
-            // Hvis PvP Mode er DISABLED, ignorer skull filter; ellers, filtrer basert på skull-status.
-            PlayerRiskConfig.SkullMode skullMode = config.skullMode();
-            boolean isSkulled = player.getSkullIcon() != -1;
+
+            // Skull filter hvis pvpMode != DISABLED
             if (pvpMode != PlayerRiskConfig.PvPMode.DISABLED) {
+                PlayerRiskConfig.SkullMode skullMode = config.skullMode();
+                boolean isSkulled = player.getSkullIcon() != -1;
                 if (skullMode == PlayerRiskConfig.SkullMode.UNSKULLED && isSkulled)
                     continue;
                 else if (skullMode == PlayerRiskConfig.SkullMode.SKULLED && !isSkulled)
                     continue;
             }
+
             long risk = RiskCalculator.calculateRisk(player, itemManager);
             PlayerRiskOverlay.RiskCategory category = RiskCalculator.getRiskCategory(risk, config);
             if (category != PlayerRiskOverlay.RiskCategory.NONE)

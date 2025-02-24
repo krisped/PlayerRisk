@@ -55,6 +55,13 @@ public class PlayerRiskMenuEntry
     @Subscribe
     public void onMenuOpened(MenuOpened event)
     {
+        // Hvis plugin ikke er aktiv (hotkey ikke holdes hvis satt), avbryt
+        if (!PlayerRiskPlugin.isHotkeyActive(client, config))
+        {
+            storedPlayers.clear();
+            return;
+        }
+
         // Tøm den gamle cachen for sikkerhets skyld.
         storedPlayers.clear();
 
@@ -69,11 +76,18 @@ public class PlayerRiskMenuEntry
     }
 
     /**
-     * Legger til menypunktet hvis riktig betingelse (holdShift av eller shift holdes nede).
+     * Legger til menypunktet hvis riktig betingelse (holdShift av eller shift holdes nede) + hotkey-sjekk.
      */
     @Subscribe
     public void onMenuEntryAdded(MenuEntryAdded event)
     {
+        // Hvis plugin ikke er aktiv (hotkey ikke holdes hvis satt), forsøk å fjerne menypunktet og return
+        if (!PlayerRiskPlugin.isHotkeyActive(client, config))
+        {
+            removeMenuItem();
+            return;
+        }
+
         // Vi vil bare endre MENY for RUNELITE_PLAYER
         if (event.getType() != MenuAction.RUNELITE_PLAYER.getId())
         {
@@ -94,10 +108,18 @@ public class PlayerRiskMenuEntry
 
     /**
      * Hver ClientTick: Hvis holdShift er på, men shift ikke trykkes, fjern menypunktet.
+     * Samtidig sjekk om plugin er aktiv (hotkey holdes)
      */
     @Subscribe
     public void onClientTick(ClientTick event)
     {
+        // Hvis plugin ikke er aktiv => fjern menypunkt
+        if (!PlayerRiskPlugin.isHotkeyActive(client, config))
+        {
+            removeMenuItem();
+            return;
+        }
+
         if (config.holdShift() && !client.isKeyPressed(KeyCode.KC_SHIFT))
         {
             removeMenuItem();
@@ -110,6 +132,12 @@ public class PlayerRiskMenuEntry
     @Subscribe
     public void onMenuOptionClicked(MenuOptionClicked event)
     {
+        // Hvis plugin ikke er aktiv => do nothing
+        if (!PlayerRiskPlugin.isHotkeyActive(client, config))
+        {
+            return;
+        }
+
         // Må være av typen RUNELITE_PLAYER
         if (event.getMenuAction() != MenuAction.RUNELITE_PLAYER)
         {
@@ -147,14 +175,33 @@ public class PlayerRiskMenuEntry
         long risk = RiskCalculator.calculateRisk(target, itemManager);
         String formattedRisk = NumberFormat.getNumberInstance().format(risk);
 
-        // Avhengig av config, send chatmelding og/eller åpne sidepanel
-        if (config.riskMenuAction() == PlayerRiskConfig.RiskMenuAction.CHAT ||
-                config.riskMenuAction() == PlayerRiskConfig.RiskMenuAction.ALL)
+        switch (config.riskMenuAction())
         {
-            String message = "Player " + target.getName() + " is risking " + formattedRisk + " GP.";
-            client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", message, null);
-        }
+            case CHAT:
+                // Hvis "CHAT": kun Chat-melding
+                String message = "Player " + target.getName() + " is risking " + formattedRisk + " GP.";
+                client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", message, null);
+                break;
 
+            case SIDE_PANEL:
+                // Hvis "SIDE_PANEL": kun sidepanel
+                showSidePanelForPlayer(target, risk);
+                break;
+
+            case ALL:
+                // Hvis "ALL": både Chat-melding og sidepanel
+                String msg = "Player " + target.getName() + " is risking " + formattedRisk + " GP.";
+                client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", msg, null);
+                showSidePanelForPlayer(target, risk);
+                break;
+        }
+    }
+
+    /**
+     * Åpner sidepanel og oppdaterer utstyr/risiko for gitt spiller.
+     */
+    private void showSidePanelForPlayer(Player target, long risk)
+    {
         // Åpne sidepanelet
         try
         {
@@ -193,16 +240,10 @@ public class PlayerRiskMenuEntry
      */
     private void addMenuItem()
     {
-        // Hent farge fra config
-        // (Hvis du bare vil ha en fast farge, kan du hardkode en hex-streng)
-        // NB: Her henter vi fargen fra config.riskMenuColor().
-        // Du kan også gjøre "String colorHex = "FF0000";" for å hardkode f.eks. rød.
         String colorHex = String.format("%02X%02X%02X",
                 config.riskMenuColor().getRed(),
                 config.riskMenuColor().getGreen(),
                 config.riskMenuColor().getBlue());
-
-        // Bygg farget streng
         String coloredOption = "<col=" + colorHex + ">" + BASE_RISK_CHECK_OPTION + "</col>";
 
         // Sjekk om menypunktet allerede finnes
@@ -217,7 +258,6 @@ public class PlayerRiskMenuEntry
      */
     private void removeMenuItem()
     {
-        // Bygger opp den fargede strengen på nytt, identisk som i addMenuItem()
         String colorHex = String.format("%02X%02X%02X",
                 config.riskMenuColor().getRed(),
                 config.riskMenuColor().getGreen(),

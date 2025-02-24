@@ -2,6 +2,7 @@ package com.krisped;
 
 import net.runelite.api.Player;
 import net.runelite.client.game.ItemManager;
+import net.runelite.api.kit.KitType;
 
 public class RiskCalculator {
 
@@ -14,7 +15,7 @@ public class RiskCalculator {
             return 0;
         }
         long total = 0;
-        for (net.runelite.api.kit.KitType kit : net.runelite.api.kit.KitType.values()) {
+        for (KitType kit : KitType.values()) {
             int itemId = player.getPlayerComposition().getEquipmentId(kit);
             if (itemId > 0) {
                 total += itemManager.getItemPrice(itemId);
