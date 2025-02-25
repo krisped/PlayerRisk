@@ -159,7 +159,7 @@ public interface PlayerRiskConfig extends Config
     // --- Highlight Options ---
     @ConfigSection(
             name = "Highlight Options",
-            description = "Configure in-game highlighting: Risk Text, Show Playernames, Hull, Outline, Tile, Own Player, and Minimap Display Mode.",
+            description = "Configure in-game highlighting: Risk Text, Show Playernames, Hull, Outline, Tile, Own Player, Minimap Display Mode.",
             position = 1,
             closedByDefault = true
     )
@@ -236,6 +236,35 @@ public interface PlayerRiskConfig extends Config
             section = highlightSection
     )
     default MinimapDisplayMode minimapDisplayMode() { return MinimapDisplayMode.NONE; }
+
+    // --- Defence Text Options ---
+    @ConfigItem(
+            keyName = "defenceText",
+            name = "Show Defence lvl",
+            description = "Viser defence level til spiller. Valg: Disabled, Over, Centre, Under",
+            position = 9,
+            section = highlightSection
+    )
+    default DefenceTextPosition defenceText() { return DefenceTextPosition.DISABLED; }
+
+    enum DefenceTextPosition
+    {
+        DISABLED("Disabled"),
+        OVER("Over"),
+        CENTRE("Centre"),
+        UNDER("Under");
+
+        private final String displayName;
+        DefenceTextPosition(String displayName)
+        {
+            this.displayName = displayName;
+        }
+        @Override
+        public String toString()
+        {
+            return displayName;
+        }
+    }
 
     // --- Filter Options ---
     @ConfigSection(
@@ -328,7 +357,6 @@ public interface PlayerRiskConfig extends Config
     )
     String riskMenuSection = "riskMenuSection";
 
-    // Bruk en enkel boolean (holdShift) slik som Equipment Inspector
     @ConfigItem(
             keyName = "holdShift",
             name = "Hold Shift",
@@ -336,9 +364,7 @@ public interface PlayerRiskConfig extends Config
             position = 1,
             section = riskMenuSection
     )
-    default boolean holdShift() {
-        return false;
-    }
+    default boolean holdShift() { return false; }
 
     @ConfigItem(
             keyName = "riskMenuColor",

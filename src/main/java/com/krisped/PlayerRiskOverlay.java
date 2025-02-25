@@ -2,6 +2,7 @@ package com.krisped;
 
 import net.runelite.api.Client;
 import net.runelite.api.Player;
+import net.runelite.api.Point;
 import net.runelite.api.Varbits;
 import net.runelite.api.WorldType;
 import net.runelite.client.game.ItemManager;
@@ -145,6 +146,12 @@ public class PlayerRiskOverlay extends Overlay
             {
                 drawRiskText(graphics, player, totalRisk, riskColor);
             }
+
+            // Tegn defence-nivå-tekst dersom aktivert
+            if (config.defenceText() != PlayerRiskConfig.DefenceTextPosition.DISABLED)
+            {
+                drawDefenceText(graphics, player);
+            }
         }
         return null;
     }
@@ -199,9 +206,7 @@ public class PlayerRiskOverlay extends Overlay
         }
         else
         {
-            net.runelite.api.Point canvasText = player.getCanvasTextLocation(
-                    graphics, riskText, player.getLogicalHeight() / 2
-            );
+            Point canvasText = player.getCanvasTextLocation(graphics, riskText, player.getLogicalHeight() / 2);
             if (canvasText == null) return;
             centerX = canvasText.getX();
             baseline = canvasText.getY();
@@ -214,6 +219,57 @@ public class PlayerRiskOverlay extends Overlay
         graphics.drawString(riskText, drawX, baseline);
     }
 
+    private void drawDefenceText(Graphics2D graphics, Player player)
+    {
+        // Hent defence-nivå fra DefenceHiscoreManager (kun last én gang per spiller)
+        Integer defenceLevel = DefenceHiscoreManager.getDefenceLevel(player.getName());
+        if (defenceLevel == null)
+        {
+            // Start henting asynkront og vis ingenting denne runden
+            DefenceHiscoreManager.fetchDefenceLevel(player.getName());
+            return;
+        }
+        String defText = defenceLevel + " Def.";
+        FontMetrics metrics = graphics.getFontMetrics();
+        int baseline;
+        int centerX;
+        Shape convexHull = player.getConvexHull();
+        if (convexHull != null)
+        {
+            Rectangle bounds = convexHull.getBounds();
+            int headY = bounds.y;
+            int feetY = bounds.y + bounds.height;
+            centerX = bounds.x + bounds.width / 2;
+            int centerY = (headY + feetY) / 2;
+            switch (config.defenceText())
+            {
+                case OVER:
+                    // Juster med en offset basert på tekstens høyde slik at den ikke overlapper playername og risk
+                    baseline = headY - 2 + metrics.getAscent() + metrics.getHeight() + 2;
+                    break;
+                case UNDER:
+                    baseline = feetY + 2 + metrics.getAscent();
+                    break;
+                case CENTRE:
+                default:
+                    baseline = centerY + (metrics.getAscent() - metrics.getDescent()) / 2;
+                    break;
+            }
+        }
+        else
+        {
+            Point canvasText = player.getCanvasTextLocation(graphics, defText, player.getLogicalHeight() / 2);
+            if (canvasText == null)
+                return;
+            centerX = canvasText.getX();
+            baseline = canvasText.getY();
+        }
+        int textWidth = metrics.stringWidth(defText);
+        int drawX = centerX - textWidth / 2;
+        graphics.setColor(Color.WHITE);
+        graphics.drawString(defText, drawX, baseline);
+    }
+
     private String formatRiskValue(long value)
     {
         if (value >= 1_000_000)
@@ -224,6 +280,7 @@ public class PlayerRiskOverlay extends Overlay
             return String.valueOf(value);
     }
 
+    // Definerer vårt interne RiskCategory for overlayet
     enum RiskCategory
     {
         NONE,
@@ -233,6 +290,7 @@ public class PlayerRiskOverlay extends Overlay
         INSANE
     }
 
+    // Bruker vårt interne RiskCategory for å sjekke om kategorien er aktivert
     private boolean isCategoryEnabled(RiskCategory category)
     {
         switch (category)
